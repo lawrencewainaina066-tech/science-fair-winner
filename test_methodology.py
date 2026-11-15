@@ -99,3 +99,4 @@ def test_maize_style_mixed_methods_numeric_repeated_design_gets_full_corrections
     assert validation["suggested_objective"] == "Compare two or more groups or treatments"
     assert validation["suggested_analysis"]
     assert any(item["level"] == "error" for item in validation["findings"])
+    assert not any("thematic" in item.lower() for item in result["analysis_plan"])
