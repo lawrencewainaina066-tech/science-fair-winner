@@ -244,7 +244,7 @@ def validate_design(
             "detail": "A numerical plant-height measurement alone is not a mixed-methods study.",
             "action": "Use a quantitative experimental design unless you are also collecting and analysing qualitative data (for example, structured farmer interviews) and explaining how both strands will be integrated.",
         })
-        if quantitative and objective == "Compare two or more groups or treatments":
+        if quantitative:
             suggested_design = "Controlled experiment"
     if design in ("Observational study", "Correlational study") and objective == "Compare two or more groups or treatments":
         findings.append({
@@ -286,7 +286,8 @@ def validate_design(
 
     repeated = any(term in (data_collection or "").lower() + " " + (duration or "").lower()
                    for term in ("every 7", "every seven", "weekly", "repeated", "before and after", "each week", "daily"))
-    if repeated and outcome_type == "Continuous numerical" and objective in (
+    effective_objective = suggested_objective or objective
+    if repeated and outcome_type == "Continuous numerical" and effective_objective in (
         "Compare two or more groups or treatments",
         "Measure change before and after an intervention",
     ):
