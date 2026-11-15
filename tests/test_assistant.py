@@ -79,3 +79,52 @@ def test_science_prompt_rejects_empty_question():
         assert "question" in str(exc).lower()
     else:
         raise AssertionError("An empty research question should be rejected")
+
+
+class FakeProviderResponse:
+    ok = True
+    status_code = 200
+    text = ""
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def json(self):
+        return self.payload
+
+
+def test_openai_uses_responses_api_and_extracts_output_text(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(assistant, "ai_settings", lambda: {
+        "provider": "openai", "gemini_key": "", "gemini_model": "",
+        "anthropic_key": "", "anthropic_model": "",
+        "openai_key": "test-secret", "openai_model": "gpt-6-luna",
+    })
+
+    def fake_post(url, **kwargs):
+        captured["url"] = url
+        captured["payload"] = kwargs["json"]
+        return FakeProviderResponse({"output_text": "A scientific answer."})
+
+    monkeypatch.setattr(assistant.requests, "post", fake_post)
+    answer = assistant.ask_ai([{"role": "user", "content": "Explain osmosis."}])
+    assert answer == "A scientific answer."
+    assert captured["url"] == "https://api.openai.com/v1/responses"
+    assert captured["payload"]["model"] == "gpt-6-luna"
+    assert captured["payload"]["input"][0]["content"] == "Explain osmosis."
+    assert "instructions" in captured["payload"]
+
+
+def test_openai_extracts_text_from_output_content_blocks(monkeypatch):
+    monkeypatch.setattr(assistant, "ai_settings", lambda: {
+        "provider": "openai", "gemini_key": "", "gemini_model": "",
+        "anthropic_key": "", "anthropic_model": "",
+        "openai_key": "test-secret", "openai_model": "gpt-6-luna",
+    })
+    monkeypatch.setattr(assistant.requests, "post", lambda *args, **kwargs: FakeProviderResponse({
+        "output": [{"type": "message", "content": [
+            {"type": "output_text", "text": "First part."},
+            {"type": "output_text", "text": "Second part."},
+        ]}]
+    }))
+    assert assistant.ask_ai([{"role": "user", "content": "Explain diffusion."}]) == "First part.\nSecond part."
