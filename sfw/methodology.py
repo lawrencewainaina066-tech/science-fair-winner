@@ -177,5 +177,161 @@ def build_methodology(
         "analysis_plan": analysis,
         "method_steps": method_steps,
         "warnings": warnings,
+        "validation": validate_design(
+            design=design,
+            objective=objective,
+            outcome_type=outcome_type,
+            independent_variable=independent_variable,
+            dependent_variable=dependent_variable,
+            population=population,
+            sampling_method=sampling_method,
+            sample_size=sample_size,
+            groups=group_count,
+            data_collection=data_collection,
+            duration=duration,
+        ),
         "integrity_note": "This is a draft planning aid based on the inputs supplied. It does not calculate or validate sample size, establish causality, replace a statistical analysis plan, or provide ethics approval. Confirm the protocol with a qualified supervisor or statistician before data collection.",
+    }
+
+
+def validate_design(
+    design,
+    objective,
+    outcome_type,
+    independent_variable="",
+    dependent_variable="",
+    population="",
+    sampling_method="",
+    sample_size=None,
+    groups=1,
+    data_collection="",
+    duration="",
+):
+    """Flag common mismatches and give transparent, non-prescriptive corrections."""
+    findings = []
+    suggested_design = None
+    suggested_objective = None
+    suggested_analysis = None
+
+    quantitative = outcome_type in ("Continuous numerical", "Categorical", "Count")
+    qualitative = outcome_type == "Text / qualitative"
+
+    if quantitative and objective == "Explore experiences, views or processes":
+        findings.append({
+            "level": "error",
+            "title": "Objective does not match the measured outcome",
+            "detail": "The selected objective is qualitative, but the main outcome is numerical or categorical.",
+            "action": "If the main question is whether compost tea concentration changes maize height, select 'Compare two or more groups or treatments'.",
+        })
+        suggested_objective = "Compare two or more groups or treatments"
+    elif qualitative and objective in (
+        "Compare two or more groups or treatments",
+        "Measure a relationship between variables",
+        "Measure change before and after an intervention",
+    ):
+        findings.append({
+            "level": "warning",
+            "title": "Check the objective against the qualitative outcome",
+            "detail": "The selected objective usually requires a defined qualitative comparison or a quantitative outcome.",
+            "action": "If the main data are interview or observation text, choose 'Explore experiences, views or processes' and describe the qualitative analysis.",
+        })
+        suggested_objective = "Explore experiences, views or processes"
+
+    if design == "Mixed-methods study":
+        findings.append({
+            "level": "warning",
+            "title": "Mixed-methods requires two integrated strands",
+            "detail": "A numerical plant-height measurement alone is not a mixed-methods study.",
+            "action": "Use a quantitative experimental design unless you are also collecting and analysing qualitative data (for example, structured farmer interviews) and explaining how both strands will be integrated.",
+        })
+        if quantitative and objective == "Compare two or more groups or treatments":
+            suggested_design = "Controlled experiment"
+    if design in ("Observational study", "Correlational study") and objective == "Compare two or more groups or treatments":
+        findings.append({
+            "level": "warning",
+            "title": "Treatment comparison may need an experimental design",
+            "detail": "If the researcher assigns different compost tea concentrations, this is an intervention rather than a purely observational comparison.",
+            "action": "Choose 'Controlled experiment' when treatments are assigned and relevant conditions can be controlled; choose 'Quasi-experimental study' when allocation is not random or full control is not feasible.",
+        })
+        suggested_design = "Controlled experiment"
+    if design == "Controlled experiment" and groups < 2:
+        findings.append({
+            "level": "error",
+            "title": "A comparison group is missing",
+            "detail": "A controlled comparison needs at least two treatment conditions.",
+            "action": "Include an untreated control and at least one treatment condition.",
+        })
+    if sample_size is not None:
+        if sample_size < groups:
+            findings.append({
+                "level": "error",
+                "title": "Fewer experimental units than groups",
+                "detail": f"The total sample size ({sample_size}) is smaller than the number of groups ({groups}); at least one group would have no experimental unit.",
+                "action": "Increase the total number of independent experimental units so every group has replication.",
+            })
+        elif sample_size // groups < 2:
+            findings.append({
+                "level": "warning",
+                "title": "Insufficient replication for a useful group comparison",
+                "detail": f"With {sample_size} total units across {groups} groups, at least one group has only one unit. Within-group variation cannot be estimated reliably.",
+                "action": "Plan multiple independent experimental units per group and justify the final sample size with a power or precision calculation where feasible.",
+            })
+        elif sample_size / groups < 5:
+            findings.append({
+                "level": "warning",
+                "title": "Small number of replicates per group",
+                "detail": f"The planned average is {sample_size / groups:.1f} independent units per group. This may give imprecise estimates; there is no universal minimum that replaces a power calculation.",
+                "action": "Consider increasing replication if resources allow and justify sample size based on expected effect, variability, significance level and desired power.",
+            })
+
+    repeated = any(term in (data_collection or "").lower() + " " + (duration or "").lower()
+                   for term in ("every 7", "every seven", "weekly", "repeated", "before and after", "each week", "daily"))
+    if repeated and outcome_type == "Continuous numerical" and objective in (
+        "Compare two or more groups or treatments",
+        "Measure change before and after an intervention",
+    ):
+        suggested_analysis = "Because height is measured repeatedly on the same plants, do not treat each weekly measurement as an independent observation. Plot growth over time and consider a repeated-measures ANOVA or a mixed-effects model with plant as the repeated subject, if assumptions and sample size permit."
+        findings.append({
+            "level": "warning",
+            "title": "Repeated measurements need a repeated-measures analysis",
+            "detail": "Weekly measurements from the same maize plant are correlated; they are not independent replicates.",
+            "action": suggested_analysis,
+        })
+
+    if sampling_method == "Simple random sampling":
+        findings.append({
+            "level": "info",
+            "title": "Separate sampling from treatment allocation",
+            "detail": "Randomly selecting plants is not the same as randomly assigning them to fertilizer groups.",
+            "action": "Describe how seedlings are selected, then separately randomise eligible seedlings to the control and treatment groups.",
+        })
+    if design == "Controlled experiment" and groups >= 2:
+        findings.append({
+            "level": "info",
+            "title": "Define the treatment levels explicitly",
+            "detail": "The number of groups alone does not identify what each group receives.",
+            "action": "List every concentration and include a 0% untreated-fertilizer control. Keep application volume and other growing conditions consistent.",
+        })
+    if not dependent_variable.strip():
+        findings.append({
+            "level": "error",
+            "title": "Outcome is not defined",
+            "detail": "A measurable dependent variable is required.",
+            "action": "Name the outcome and its unit, such as plant height in centimetres.",
+        })
+
+    if not findings:
+        findings.append({
+            "level": "success",
+            "title": "No obvious design mismatch detected",
+            "detail": "The selected inputs are broadly compatible under these basic checks.",
+            "action": "This is not proof that the design or sample size is statistically adequate. Review the protocol before data collection.",
+        })
+
+    return {
+        "findings": findings,
+        "suggested_design": suggested_design,
+        "suggested_objective": suggested_objective,
+        "suggested_analysis": suggested_analysis,
+        "is_valid": not any(item["level"] == "error" for item in findings),
     }
