@@ -13,11 +13,25 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 APP_NAME = "Science Fair Winner"
 APP_TAGLINE = "Scientific Intelligence and Problem-Solving Platform"
 
+
+def _setting(name, default=""):
+    """Read a setting from environment/.env first, then Streamlit Secrets."""
+    value = os.getenv(name)
+    if value:
+        return value.strip()
+    try:
+        import streamlit as st
+        value = st.secrets.get(name, default)
+    except Exception:
+        value = default
+    return str(value).strip()
+
+
 def ai_settings():
     return {
-        "provider": os.getenv("SFW_AI_PROVIDER", "").strip().lower(),
-        "anthropic_key": os.getenv("ANTHROPIC_API_KEY", "").strip(),
-        "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
-        "openai_key": os.getenv("OPENAI_API_KEY", "").strip(),
-        "openai_model": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+        "provider": _setting("SFW_AI_PROVIDER").lower(),
+        "anthropic_key": _setting("ANTHROPIC_API_KEY"),
+        "anthropic_model": _setting("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
+        "openai_key": _setting("OPENAI_API_KEY"),
+        "openai_model": _setting("OPENAI_MODEL", "gpt-4.1-mini"),
     }
