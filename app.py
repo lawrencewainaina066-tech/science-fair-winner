@@ -8,7 +8,7 @@ from sfw.config import APP_NAME, APP_TAGLINE, ROOT, PROJECT_DIR
 from sfw.planner import build_research_plan, DISCIPLINES
 from sfw.analysis import (load_table, numeric_summary, correlation_matrix, independent_t_test,
                          paired_t_test, chi_square_test, linear_regression, interpret_p_value)
-from sfw.literature import search_crossref, format_references
+from sfw.literature import search_crossref, format_references, unmatched_citation_numbers
 from sfw.assistant import ask_ai, local_guidance
 from sfw.storage import save_project, list_projects, read_project
 from sfw.reporting import build_docx, build_pdf
@@ -82,6 +82,13 @@ elif page == "AI Science Assistant":
                 except Exception as e:
                     answer = f"AI provider request failed: {e}\n\nYou can check your API key, provider setting and internet connection. Offline guidance:\n\n{local_guidance(prompt)}"
                 if sources:
+                    unmatched = unmatched_citation_numbers(answer, sources)
+                    if unmatched:
+                        st.warning(
+                            "The AI used citation number(s) not present in the retrieved Crossref records: "
+                            + ", ".join(str(number) for number in unmatched)
+                            + ". Treat those in-text citations as unverified."
+                        )
                     answer += format_references(sources)
                 st.markdown(answer)
         st.session_state.chat.append({"role": "assistant", "content": answer})
