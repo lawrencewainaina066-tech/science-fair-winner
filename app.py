@@ -10,7 +10,7 @@ from sfw.methodology import (build_methodology, DESIGN_OPTIONS, OBJECTIVES, OUTC
 from sfw.analysis import (load_table, numeric_summary, correlation_matrix, independent_t_test,
                          paired_t_test, chi_square_test, linear_regression, interpret_p_value)
 from sfw.literature import search_crossref, format_references, unmatched_citation_numbers
-from sfw.assistant import ask_ai, local_guidance
+from sfw.assistant import ask_ai, local_guidance, ai_provider_status
 from sfw.storage import save_project, list_projects, read_project
 from sfw.reporting import build_docx, build_pdf
 
@@ -51,7 +51,28 @@ if page == "Home":
 
 elif page == "AI Science Assistant":
     st.subheader("Scientific conversation")
-    st.caption("Configure an AI provider under About & Settings for model-powered responses. Without a key, SFW provides an offline research framework.")
+    st.caption("Ask questions, explore scientific concepts and develop research ideas. AI answers are assistance, not a substitute for checking primary evidence or expert review.")
+    provider_status = ai_provider_status()
+    with st.expander("AI connection & configuration", expanded=not provider_status["configured"]):
+        st.write(f"**Provider:** {provider_status['provider']}")
+        if provider_status["model"]:
+            st.write(f"**Model:** {provider_status['model']}")
+        if provider_status["configured"]:
+            st.info(provider_status["message"])
+            if st.button("Test AI connection", key="sfw_test_ai_connection"):
+                with st.spinner("Sending a short test request to the selected provider..."):
+                    try:
+                        test_answer = ask_ai([{"role": "user", "content": "Reply with exactly: SFW connection test successful."}])
+                        if test_answer:
+                            st.success("AI connection successful.")
+                            st.caption(test_answer[:300])
+                        else:
+                            st.warning("No AI provider response was returned. Check the selected provider and API key.")
+                    except Exception as exc:
+                        st.error(f"AI connection test failed: {exc}")
+        else:
+            st.warning(provider_status["message"])
+            st.caption("Add the provider name and matching API key in Streamlit Cloud → Manage app → Settings → Secrets. Never paste an API key into this chat or commit it to GitHub.")
     use_crossref = st.checkbox(
         "Search Crossref and ground this answer in retrieved publication records",
         value=False,
