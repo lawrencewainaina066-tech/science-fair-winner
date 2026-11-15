@@ -42,7 +42,7 @@ if page == "Home":
         ("🧪 Research Planner", "Draft aims, hypotheses, variables and methods."),
         ("📊 Data Analysis Lab", "Explore CSV/Excel data, statistics and charts."),
         ("📚 Literature Search", "Find scholarly publication metadata through Crossref."),
-        ("🗂️ Project Library", "Save and reopen your project plans."),
+        ("🗂️ Project Library", "Optional project storage for trusted private workspaces."),
         ("📄 Report Builder", "Export project plans as DOCX or PDF.")
     ]
     for i, (title, desc) in enumerate(cards):
