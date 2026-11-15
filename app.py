@@ -519,7 +519,7 @@ elif page == "About & Settings":
     st.caption("Add only one provider configuration to Streamlit Secrets. Model availability, pricing, quotas and data handling depend on the provider and your account. The assistant's Test AI connection button sends a short API request that may consume quota. Never commit API keys to GitHub or share them in screenshots.")
     st.markdown("#### Data and privacy")
     st.write("Projects are saved locally under data/projects. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
-    st.warning("Hosted-storage notice: Streamlit Cloud's local filesystem is not durable storage. Project Library files may be lost during a rebuild, restart or redeployment. Keep backups; persistent cloud storage and user accounts are not yet configured.")
+    st.warning("Hosted-storage and privacy notice: Streamlit Cloud's local filesystem is not durable storage. Shared Project Library saving is disabled by default because there are no user accounts or private per-user workspaces. Keep backups; persistent cloud storage and authentication are not yet configured.")
     st.markdown("#### Configure the remote RTX service")
     st.write("Add SFW_RTX_BASE_URL in Streamlit Secrets using your public HTTPS tunnel hostname. If Cloudflare Access protects the tunnel, add SFW_RTX_ACCESS_CLIENT_ID and SFW_RTX_ACCESS_CLIENT_SECRET as a service token. Add SFW_RTX_API_TOKEN only if the backend separately requires Bearer authentication. The connector is read-only and blocks local/private network destinations.")
     st.markdown("#### Current limitations")
