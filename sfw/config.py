@@ -30,6 +30,8 @@ def _setting(name, default=""):
 def ai_settings():
     return {
         "provider": _setting("SFW_AI_PROVIDER").lower(),
+        "gemini_key": _setting("GEMINI_API_KEY"),
+        "gemini_model": _setting("GEMINI_MODEL", "gemini-2.5-flash-lite"),
         "anthropic_key": _setting("ANTHROPIC_API_KEY"),
         "anthropic_model": _setting("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
         "openai_key": _setting("OPENAI_API_KEY"),
