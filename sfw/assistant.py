@@ -183,16 +183,25 @@ def ask_ai(messages, research_sources=None):
     if provider == "openai" and cfg["openai_key"]:
         payload = {
             "model": cfg["openai_model"],
-            "max_tokens": 1800,
-            "messages": [{"role": "system", "content": system_prompt}] + clean_messages
+            "instructions": system_prompt,
+            "input": clean_messages,
+            "max_output_tokens": 1800,
         }
         r = requests.post(
-            "https://api.openai.com/v1/chat/completions", json=payload, timeout=90,
+            "https://api.openai.com/v1/responses", json=payload, timeout=90,
             headers={"Authorization": f"Bearer {cfg['openai_key']}", "Content-Type": "application/json"}
         )
         _raise_provider_error(r, "OpenAI")
-        choices = r.json().get("choices", [])
-        answer = choices[0].get("message", {}).get("content", "").strip() if choices else ""
+        data = r.json()
+        answer = (data.get("output_text") or "").strip()
+        if not answer:
+            text_parts = []
+            for item in data.get("output", []):
+                if item.get("type") == "message":
+                    for block in item.get("content", []):
+                        if block.get("type") in ("output_text", "text") and block.get("text"):
+                            text_parts.append(block["text"])
+            answer = "\\n".join(text_parts).strip()
         if not answer:
             raise RuntimeError("OpenAI returned no text. Check the model response and account limits.")
         return answer
