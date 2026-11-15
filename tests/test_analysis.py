@@ -33,6 +33,7 @@ def test_paired_t_test_uses_after_minus_before_and_reports_ci():
 def test_chi_square_flags_small_expected_counts():
     result = chi_square_test([[2, 8], [7, 3]])
     assert result["minimum_expected_frequency"] < 5
+    assert isinstance(result["expected"], list)
     assert result["small_expected_frequency_warning"] is True
 
 
