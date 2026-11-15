@@ -182,9 +182,30 @@ elif page == "Research Methodology Engine":
         st.write(f"**Groups / conditions:** {mp['groups']}")
         st.write(f"**Data collection:** {mp['data_collection']}")
         st.write(f"**Duration:** {mp['duration']}")
+        st.markdown("#### Research design validation")
+        validation = mp.get("validation", {})
+        for finding in validation.get("findings", []):
+            level = finding.get("level")
+            message = f"**{finding.get('title', 'Review item')}**\n\n{finding.get('detail', '')}\n\n**Recommended action:** {finding.get('action', '')}"
+            if level == "error":
+                st.error(message)
+            elif level == "warning":
+                st.warning(message)
+            elif level == "info":
+                st.info(message)
+            else:
+                st.success(message)
+        if validation.get("suggested_design") or validation.get("suggested_objective"):
+            st.markdown("**Suggested corrections**")
+            if validation.get("suggested_design"):
+                st.write("Suggested study design: " + validation["suggested_design"])
+            if validation.get("suggested_objective"):
+                st.write("Suggested research objective: " + validation["suggested_objective"])
         st.markdown("#### Suggested analysis plan")
         for item in mp["analysis_plan"]:
             st.write("• " + item)
+        if validation.get("suggested_analysis"):
+            st.warning("Analysis adjustment: " + validation["suggested_analysis"])
         st.markdown("#### Methodology checklist")
         for step in mp["method_steps"]:
             st.write("• " + step)
@@ -201,7 +222,13 @@ elif page == "Research Methodology Engine":
             f"Groups/conditions: {mp['groups']}\nIndependent variable: {mp['independent_variable']}\n"
             f"Dependent variable: {mp['dependent_variable']} ({mp['outcome_type']})\n"
             f"Data collection: {mp['data_collection']}\nDuration: {mp['duration']}\n\n"
-            "Analysis plan\n" + "\n".join("- " + x for x in mp["analysis_plan"]) + "\n\n"
+            "Design validation\n" + "\n".join(
+                "- " + item["title"] + ": " + item["detail"] + " Recommended action: " + item["action"]
+                for item in mp.get("validation", {}).get("findings", [])
+            ) + "\n\n"
+            + ("Analysis adjustment\n" + mp["validation"]["suggested_analysis"] + "\n\n"
+               if mp.get("validation", {}).get("suggested_analysis") else "")
+            + "Analysis plan\n" + "\n".join("- " + x for x in mp["analysis_plan"]) + "\n\n"
             "Methodology checklist\n" + "\n".join("- " + x for x in mp["method_steps"]) + "\n\n"
             "Items to resolve\n" + "\n".join("- " + x for x in mp["warnings"]) + "\n\n"
             + mp["integrity_note"]
