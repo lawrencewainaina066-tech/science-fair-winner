@@ -513,7 +513,7 @@ elif page == "About & Settings":
     st.write("Projects are saved locally under data/projects. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
     st.warning("Hosted-storage notice: Streamlit Cloud's local filesystem is not durable storage. Project Library files may be lost during a rebuild, restart or redeployment. Keep backups; persistent cloud storage and user accounts are not yet configured.")
     st.markdown("#### Configure the remote RTX service")
-    st.write("Add SFW_RTX_BASE_URL in Streamlit Secrets using your public HTTPS tunnel hostname. Add SFW_RTX_API_TOKEN only if the RTX administrator has configured Bearer-token authentication. The connector is read-only and blocks local/private network destinations.")
+    st.write("Add SFW_RTX_BASE_URL in Streamlit Secrets using your public HTTPS tunnel hostname. If Cloudflare Access protects the tunnel, add SFW_RTX_ACCESS_CLIENT_ID and SFW_RTX_ACCESS_CLIENT_SECRET as a service token. Add SFW_RTX_API_TOKEN only if the backend separately requires Bearer authentication. The connector is read-only and blocks local/private network destinations.")
     st.markdown("#### Current limitations")
     st.write("- The AI assistant depends on an external API when enabled; SFW is not itself a trained foundation model.\n- Literature search retrieves Crossref metadata, not necessarily full-text papers.\n- Statistical results depend on data quality, study design and test assumptions.\n- Experimental safety and ethical approval remain the responsibility of the researcher and supervising institution.")
     st.markdown("#### Included original materials")
