@@ -148,6 +148,27 @@ def build_methodology(
     if constraints:
         warnings.append("Resource/context constraints supplied: " + constraints)
 
+    validation = validate_design(
+        design=design,
+        objective=objective,
+        outcome_type=outcome_type,
+        independent_variable=independent_variable,
+        dependent_variable=dependent_variable,
+        population=population,
+        sampling_method=sampling_method,
+        sample_size=sample_size,
+        groups=group_count,
+        data_collection=data_collection,
+        duration=duration,
+    )
+    if validation.get("suggested_objective") == "Compare two or more groups or treatments" and outcome_type == "Continuous numerical":
+        if validation.get("suggested_analysis"):
+            analysis = [validation["suggested_analysis"]]
+        elif group_count == 2:
+            analysis = ["For two independent treatment groups, consider Welch's independent-samples t-test on a pre-specified plant-level outcome, provided assumptions are reasonable. If using repeated weekly measurements, use a repeated-measures model instead."]
+        else:
+            analysis = ["For three or more independent treatment groups, consider one-way ANOVA on a pre-specified plant-level outcome if assumptions are reasonable; consider Welch ANOVA or a suitable alternative when they are not."]
+
     method_steps = [
         "Define the study setting, eligibility criteria and unit of analysis.",
         "Operationally define every variable, including measurement units, instruments and scoring rules.",
@@ -177,19 +198,7 @@ def build_methodology(
         "analysis_plan": analysis,
         "method_steps": method_steps,
         "warnings": warnings,
-        "validation": validate_design(
-            design=design,
-            objective=objective,
-            outcome_type=outcome_type,
-            independent_variable=independent_variable,
-            dependent_variable=dependent_variable,
-            population=population,
-            sampling_method=sampling_method,
-            sample_size=sample_size,
-            groups=group_count,
-            data_collection=data_collection,
-            duration=duration,
-        ),
+        "validation": validation,
         "integrity_note": "This is a draft planning aid based on the inputs supplied. It does not calculate or validate sample size, establish causality, replace a statistical analysis plan, or provide ethics approval. Confirm the protocol with a qualified supervisor or statistician before data collection.",
     }
 
