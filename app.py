@@ -6,6 +6,7 @@ import streamlit as st
 
 from sfw.config import APP_NAME, APP_TAGLINE, ROOT, PROJECT_DIR
 from sfw.planner import build_research_plan, DISCIPLINES
+from sfw.methodology import (build_methodology, DESIGN_OPTIONS, OBJECTIVES, OUTCOME_TYPES, SAMPLING_METHODS)
 from sfw.analysis import (load_table, numeric_summary, correlation_matrix, independent_t_test,
                          paired_t_test, chi_square_test, linear_regression, interpret_p_value)
 from sfw.literature import search_crossref, format_references, unmatched_citation_numbers
@@ -20,7 +21,7 @@ st.caption(APP_TAGLINE)
 with st.sidebar:
     st.header("Workspace")
     page = st.radio("Open module", [
-        "Home", "AI Science Assistant", "Research Project Planner",
+        "Home", "AI Science Assistant", "Research Project Planner", "Research Methodology Engine",
         "Literature Search", "Data Analysis Lab", "Project Library", "About & Settings"
     ])
     st.divider()
@@ -130,6 +131,82 @@ elif page == "Research Project Planner":
             st.download_button("Download DOCX", build_docx(p), file_name="SFW_Research_Plan.docx")
         with c:
             st.download_button("Download PDF", build_pdf(p), file_name="SFW_Research_Plan.pdf")
+
+elif page == "Research Methodology Engine":
+    st.subheader("Design a defensible research methodology")
+    st.write("Build a structured methodology outline from your research question and study choices. SFW explains the reasoning and flags issues that need supervisor or statistician review.")
+    with st.form("methodology_form"):
+        method_title = st.text_input("Project title", placeholder="e.g. Effect of compost tea on maize growth")
+        research_question = st.text_area("Research question", placeholder="What effect does compost tea concentration have on maize seedling height over four weeks?")
+        design = st.selectbox("Study design", DESIGN_OPTIONS)
+        objective = st.selectbox("Main research objective", OBJECTIVES)
+        independent_variable = st.text_input("Exposure, predictor or independent variable", placeholder="e.g. compost tea concentration")
+        dependent_variable = st.text_input("Main outcome / dependent variable", placeholder="e.g. maize seedling height (cm)")
+        outcome_type = st.selectbox("Type of main outcome", OUTCOME_TYPES)
+        population = st.text_input("Target population or study material", placeholder="e.g. maize seedlings of variety X grown in pots")
+        sampling_method = st.selectbox("Sampling / selection approach", SAMPLING_METHODS)
+        m1, m2 = st.columns(2)
+        with m1:
+            planned_sample_size = st.number_input("Planned sample size (enter 0 if undecided)", min_value=0, max_value=1000000, value=0, step=1)
+        with m2:
+            groups = st.number_input("Number of groups / conditions", min_value=1, max_value=100, value=2, step=1)
+        data_collection = st.text_area("How will data be collected?", placeholder="Describe instruments, measurement frequency and recording procedure.")
+        duration = st.text_input("Study duration / measurement schedule", placeholder="e.g. 4 weeks; measure height every 7 days")
+        constraints = st.text_area("Resources, location, safety or other constraints (optional)")
+        method_submitted = st.form_submit_button("Generate methodology outline", type="primary")
+    if method_submitted:
+        try:
+            st.session_state.methodology_plan = build_methodology(
+                method_title, research_question, design, objective,
+                independent_variable, dependent_variable, outcome_type,
+                population, sampling_method,
+                int(planned_sample_size) if planned_sample_size else None,
+                int(groups), data_collection, duration, constraints,
+            )
+        except ValueError as e:
+            st.error(str(e))
+    if st.session_state.get("methodology_plan"):
+        mp = st.session_state.methodology_plan
+        st.markdown(f"### {mp['title']}")
+        st.markdown("#### Research design")
+        st.write(f"**Selected design:** {mp['design']}")
+        st.write(mp["design_guidance"])
+        st.markdown("#### Study framework")
+        st.write(f"**Research question:** {mp['research_question']}")
+        st.write(f"**Objective:** {mp['objective']}")
+        st.write(f"**Target population / material:** {mp['population']}")
+        st.write(f"**Independent / predictor variable:** {mp['independent_variable']}")
+        st.write(f"**Dependent / outcome variable:** {mp['dependent_variable']} ({mp['outcome_type']})")
+        st.write(f"**Sampling:** {mp['sampling_method']}")
+        st.write(f"**Planned sample size:** {mp['planned_sample_size'] if mp['planned_sample_size'] else 'Not yet determined'}")
+        st.write(f"**Groups / conditions:** {mp['groups']}")
+        st.write(f"**Data collection:** {mp['data_collection']}")
+        st.write(f"**Duration:** {mp['duration']}")
+        st.markdown("#### Suggested analysis plan")
+        for item in mp["analysis_plan"]:
+            st.write("• " + item)
+        st.markdown("#### Methodology checklist")
+        for step in mp["method_steps"]:
+            st.write("• " + step)
+        if mp["warnings"]:
+            st.markdown("#### Items to resolve before starting")
+            for warning in mp["warnings"]:
+                st.warning(warning)
+        st.info(mp["integrity_note"])
+        export_text = (
+            f"{mp['title']}\n\nResearch question\n{mp['research_question']}\n\n"
+            f"Design\n{mp['design']}\n{mp['design_guidance']}\n\n"
+            f"Population: {mp['population']}\nSampling: {mp['sampling_method']}\n"
+            f"Planned sample size: {mp['planned_sample_size'] or 'Not yet determined'}\n"
+            f"Groups/conditions: {mp['groups']}\nIndependent variable: {mp['independent_variable']}\n"
+            f"Dependent variable: {mp['dependent_variable']} ({mp['outcome_type']})\n"
+            f"Data collection: {mp['data_collection']}\nDuration: {mp['duration']}\n\n"
+            "Analysis plan\n" + "\n".join("- " + x for x in mp["analysis_plan"]) + "\n\n"
+            "Methodology checklist\n" + "\n".join("- " + x for x in mp["method_steps"]) + "\n\n"
+            "Items to resolve\n" + "\n".join("- " + x for x in mp["warnings"]) + "\n\n"
+            + mp["integrity_note"]
+        )
+        st.download_button("Download methodology outline (.txt)", export_text, file_name="SFW_Methodology_Outline.txt", mime="text/plain")
 
 elif page == "Literature Search":
     st.subheader("Scholarly literature discovery")
