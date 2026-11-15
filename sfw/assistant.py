@@ -201,7 +201,7 @@ def ask_ai(messages, research_sources=None):
                     for block in item.get("content", []):
                         if block.get("type") in ("output_text", "text") and block.get("text"):
                             text_parts.append(block["text"])
-            answer = "\\n".join(text_parts).strip()
+            answer = "\n".join(text_parts).strip()
         if not answer:
             raise RuntimeError("OpenAI returned no text. Check the model response and account limits.")
         return answer
