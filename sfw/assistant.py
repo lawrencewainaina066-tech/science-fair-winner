@@ -46,5 +46,5 @@ def local_guidance(question, discipline="Interdisciplinary"):
         "7. Choose analysis only after checking the study design and data assumptions.\n"
         "8. Report uncertainty, limitations and alternative explanations.\n\n"
         "This offline response is a planning framework, not a verified literature review or experimental finding. "
-        "Configure an AI provider in .env for model-powered conversation."
+        "Configure SFW_AI_PROVIDER and OPENAI_API_KEY in Streamlit Secrets for model-powered conversation."
     )
