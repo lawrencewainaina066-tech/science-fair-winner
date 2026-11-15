@@ -82,3 +82,20 @@ def test_mixed_methods_requires_two_integrated_strands():
     result = _build(design="Mixed-methods study")
     assert any(item["title"] == "Mixed-methods requires two integrated strands"
                for item in result["validation"]["findings"])
+
+
+def test_maize_style_mixed_methods_numeric_repeated_design_gets_full_corrections():
+    result = _build(
+        design="Mixed-methods study",
+        objective="Explore experiences, views or processes",
+        outcome_type="Continuous numerical",
+        planned_sample_size=2,
+        groups=3,
+        data_collection="Measure maize height every 7 days",
+        duration="4 weeks",
+    )
+    validation = result["validation"]
+    assert validation["suggested_design"] == "Controlled experiment"
+    assert validation["suggested_objective"] == "Compare two or more groups or treatments"
+    assert validation["suggested_analysis"]
+    assert any(item["level"] == "error" for item in validation["findings"])
