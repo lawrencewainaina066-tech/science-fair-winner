@@ -99,6 +99,32 @@ def _normalise_messages(messages):
     return clean
 
 
+
+def build_science_prompt(question, discipline="Interdisciplinary",
+                         level="Undergraduate", mode="General scientific explanation"):
+    """Add user-selected scope and response style without changing the research question."""
+    if not str(question or "").strip():
+        raise ValueError("Enter a scientific question.")
+    mode_guidance = {
+        "General scientific explanation": "Explain the science clearly, then give practical examples and note important limitations.",
+        "Plan an experiment": "Develop a testable question, hypotheses, variables, controls, materials, reproducible steps, safety/ethics checks and a suitable analysis plan. Do not invent completed results.",
+        "Interpret data or results": "Ask for missing units or study details when essential. Explain the appropriate analysis, assumptions, effect size and uncertainty. Do not infer causation from correlation.",
+        "Troubleshoot a scientific problem": "Separate observed symptoms from possible causes, rank plausible explanations, and propose safe tests that distinguish between them.",
+        "Critically review a research idea": "Assess clarity, novelty claims, feasibility, confounding, bias, measurement quality, ethics, safety and limitations. Identify what evidence is still needed.",
+    }
+    selected_mode = mode if mode in mode_guidance else "General scientific explanation"
+    return (
+        f"Research discipline: {discipline}.\n"
+        f"Audience level: {level}.\n"
+        f"Requested response mode: {selected_mode}.\n"
+        f"Response guidance: {mode_guidance[selected_mode]}\n\n"
+        "Adapt terminology and mathematical detail to the audience. State assumptions and units. "
+        "Distinguish established evidence, interpretation and proposed next steps. "
+        "If essential information is missing, state what is needed instead of fabricating it.\n\n"
+        f"USER'S SCIENTIFIC QUESTION:\n{str(question).strip()}"
+    )
+
+
 def ask_ai(messages, research_sources=None):
     """Send a scientific conversation to the selected provider; return None when unconfigured."""
     cfg = ai_settings()
