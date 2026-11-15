@@ -1,4 +1,5 @@
-from sfw import literature\nfrom sfw.literature import clean_abstract, format_references, unmatched_citation_numbers
+from sfw import literature
+from sfw.literature import clean_abstract, format_references, unmatched_citation_numbers
 
 
 def test_clean_abstract_removes_markup_and_normalizes_whitespace():
