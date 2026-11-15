@@ -101,7 +101,7 @@ def chi_square_test(contingency):
     chi2, p, dof, expected = stats.chi2_contingency(arr)
     return {
         "chi_square": float(chi2), "p_value": float(p),
-        "degrees_of_freedom": int(dof), "expected": expected,
+        "degrees_of_freedom": int(dof), "expected": expected.tolist(),
         "minimum_expected_frequency": float(expected.min()),
         "small_expected_frequency_warning": bool((expected < 5).any()),
     }
