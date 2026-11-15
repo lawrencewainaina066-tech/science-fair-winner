@@ -10,7 +10,7 @@ from sfw.methodology import (build_methodology, DESIGN_OPTIONS, OBJECTIVES, OUTC
 from sfw.analysis import (load_table, numeric_summary, correlation_matrix, independent_t_test,
                          paired_t_test, chi_square_test, linear_regression, interpret_p_value)
 from sfw.literature import search_crossref, format_references, unmatched_citation_numbers
-from sfw.assistant import ask_ai, local_guidance, ai_provider_status
+from sfw.assistant import ask_ai, local_guidance, ai_provider_status, build_science_prompt
 from sfw.storage import save_project, list_projects, read_project
 from sfw.reporting import build_docx, build_pdf
 
@@ -73,6 +73,29 @@ elif page == "AI Science Assistant":
         else:
             st.warning(provider_status["message"])
             st.caption("Add the provider name and matching API key in Streamlit Cloud → Manage app → Settings → Secrets. Never paste an API key into this chat or commit it to GitHub.")
+    selector_cols = st.columns(3)
+    with selector_cols[0]:
+        assistant_discipline = st.selectbox(
+            "Scientific discipline",
+            ["Interdisciplinary", "Biology", "Chemistry", "Physics", "Environmental science",
+             "Agriculture", "Mathematics", "Engineering", "Health sciences"],
+            key="sfw_assistant_discipline",
+        )
+    with selector_cols[1]:
+        assistant_level = st.selectbox(
+            "Explanation level",
+            ["Secondary school", "Undergraduate", "Researcher"],
+            index=1,
+            key="sfw_assistant_level",
+        )
+    with selector_cols[2]:
+        assistant_mode = st.selectbox(
+            "Response mode",
+            ["General scientific explanation", "Plan an experiment",
+             "Interpret data or results", "Troubleshoot a scientific problem",
+             "Critically review a research idea"],
+            key="sfw_assistant_mode",
+        )
     use_crossref = st.checkbox(
         "Search Crossref and ground this answer in retrieved publication records",
         value=False,
@@ -123,9 +146,15 @@ elif page == "AI Science Assistant":
                     except Exception as e:
                         st.warning(f"Crossref search was unavailable: {e}. Continuing without retrieved sources.")
                 try:
-                    answer = ask_ai(st.session_state.chat, research_sources=sources)
+                    contextual_prompt = build_science_prompt(
+                        prompt, assistant_discipline, assistant_level, assistant_mode
+                    )
+                    messages_for_ai = st.session_state.chat[:-1] + [
+                        {"role": "user", "content": contextual_prompt}
+                    ]
+                    answer = ask_ai(messages_for_ai, research_sources=sources)
                     if not answer:
-                        answer = local_guidance(prompt)
+                        answer = local_guidance(prompt, assistant_discipline)
                 except Exception as e:
                     answer = f"AI provider request failed: {e}\n\nYou can check your API key, provider setting and internet connection. Offline guidance:\n\n{local_guidance(prompt)}"
                 if sources:
