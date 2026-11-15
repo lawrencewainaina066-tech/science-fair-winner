@@ -1,0 +1,10 @@
+{
+  "Biology": ["cell biology", "genetics", "ecology", "microbiology", "botany", "zoology", "physiology"],
+  "Chemistry": ["analytical chemistry", "organic chemistry", "inorganic chemistry", "physical chemistry", "materials"],
+  "Physics": ["mechanics", "electricity and magnetism", "waves", "thermodynamics", "optics"],
+  "Environmental Science": ["climate", "water quality", "soil", "biodiversity", "pollution", "conservation"],
+  "Agriculture": ["crop science", "soil fertility", "plant nutrition", "irrigation", "agroecology", "pest management"],
+  "Mathematics": ["algebra", "calculus", "statistics", "probability", "mathematical modelling"],
+  "Engineering & Technology": ["mechanical design", "electronics", "renewable energy", "robotics", "materials engineering"],
+  "Health & Biomedical Science": ["public health", "biochemistry", "biomedical science", "epidemiology"]
+}
