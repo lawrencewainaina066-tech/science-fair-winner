@@ -17,8 +17,7 @@ def test_format_references_uses_only_supplied_crossref_records():
         "journal": "Journal of Crop Science",
         "doi": "10.1234/example",
     }])
-    assert "[1]." not in references
-    assert "A. Researcher (2024)." in references
+    assert "1. A. Researcher (2024)." in references
     assert "https://doi.org/10.1234/example" in references
     assert "full papers were read" in references
 
