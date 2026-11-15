@@ -219,7 +219,7 @@ elif page == "About & Settings":
     st.write("Science Fair Winner is a modular scientific research-support platform. It combines a conversational AI connection (optional), research planning, scholarly metadata search, data analysis and report generation.")
     st.markdown("#### Configure an AI provider")
     st.write("For Streamlit Community Cloud, add these values in Manage app → Settings → Secrets. For local development, place the same values in .streamlit/secrets.toml or a private .env file.")
-    st.code('SFW_AI_PROVIDER = "gemini"\nGEMINI_API_KEY = "your_google_ai_studio_key"\nGEMINI_MODEL = "gemini-2.5-flash-lite"', language="toml")
+    st.code('SFW_AI_PROVIDER = "gemini"\nGEMINI_API_KEY = "your_google_ai_studio_key"\nGEMINI_MODEL = "gemini-3.5-flash-lite"', language="toml")
     st.caption("Gemini 2.5 Flash-Lite has a free API tier with usage limits. Never commit API keys to GitHub or share them in screenshots. Free-tier requests may be used by Google to improve its products.")
     st.markdown("#### Data and privacy")
     st.write("Projects are saved locally under data/projects. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
