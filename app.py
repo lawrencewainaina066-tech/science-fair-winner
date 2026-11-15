@@ -484,10 +484,10 @@ elif page == "About & Settings":
         st.code('SFW_AI_PROVIDER = "gemini"\nGEMINI_API_KEY = "your_google_ai_studio_key"\nGEMINI_MODEL = "gemini-3.5-flash-lite"', language="toml")
         st.caption("Create and manage a key through Google AI Studio. Confirm the selected model is available to your account.")
     with provider_tabs[1]:
-        st.code('SFW_AI_PROVIDER = "anthropic"\nANTHROPIC_API_KEY = "your_anthropic_api_key"\nANTHROPIC_MODEL = "claude-3-5-sonnet-latest"', language="toml")
+        st.code('SFW_AI_PROVIDER = "anthropic"\nANTHROPIC_API_KEY = "your_anthropic_api_key"\nANTHROPIC_MODEL = "claude-sonnet-5-5"', language="toml")
         st.caption("Use an API key from the Anthropic Console and a model enabled for your account.")
     with provider_tabs[2]:
-        st.code('SFW_AI_PROVIDER = "openai"\nOPENAI_API_KEY = "your_openai_api_key"\nOPENAI_MODEL = "gpt-4.1-mini"', language="toml")
+        st.code('SFW_AI_PROVIDER = "openai"\nOPENAI_API_KEY = "your_openai_api_key"\nOPENAI_MODEL = "gpt-6-luna"', language="toml")
         st.caption("Use an API key from the OpenAI platform and a model enabled for your account.")
     st.caption("Add only one provider configuration to Streamlit Secrets. Model availability, pricing, quotas and data handling depend on the provider and your account. The assistant's Test AI connection button sends a short API request that may consume quota. Never commit API keys to GitHub or share them in screenshots.")
     st.markdown("#### Data and privacy")
