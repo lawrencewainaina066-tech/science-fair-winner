@@ -50,3 +50,35 @@ def test_missing_research_question_raises():
         assert "research question" in str(exc)
     else:
         raise AssertionError("Expected missing research question to raise ValueError")
+
+
+def test_qualitative_objective_with_numeric_height_is_flagged():
+    result = _build(
+        design="Mixed-methods study",
+        objective="Explore experiences, views or processes",
+        outcome_type="Continuous numerical",
+    )
+    validation = result["validation"]
+    assert validation["suggested_objective"] == "Compare two or more groups or treatments"
+    assert any(item["title"] == "Objective does not match the measured outcome"
+               for item in validation["findings"])
+
+def test_sample_smaller_than_group_count_is_an_error():
+    result = _build(planned_sample_size=2, groups=3)
+    assert result["validation"]["is_valid"] is False
+    assert any(item["title"] == "Fewer experimental units than groups"
+               for item in result["validation"]["findings"])
+
+def test_repeated_height_measurements_trigger_repeated_analysis_warning():
+    result = _build(
+        data_collection="Measure plant height every 7 days",
+        duration="4 weeks",
+    )
+    assert result["validation"]["suggested_analysis"]
+    assert any(item["title"] == "Repeated measurements need a repeated-measures analysis"
+               for item in result["validation"]["findings"])
+
+def test_mixed_methods_requires_two_integrated_strands():
+    result = _build(design="Mixed-methods study")
+    assert any(item["title"] == "Mixed-methods requires two integrated strands"
+               for item in result["validation"]["findings"])
