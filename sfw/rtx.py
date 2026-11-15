@@ -46,14 +46,24 @@ def _endpoint(base_url: str, path: str) -> str:
     return urljoin(base, path.lstrip("/"))
 
 
-def _headers(api_token: str = "") -> dict[str, str]:
+def _headers(
+    api_token: str = "",
+    access_client_id: str = "",
+    access_client_secret: str = "",
+) -> dict[str, str]:
     headers = {"Accept": "application/json, text/html;q=0.9, */*;q=0.8"}
     if api_token.strip():
         headers["Authorization"] = f"Bearer {api_token.strip()}"
+    if access_client_id.strip() and access_client_secret.strip():
+        headers["CF-Access-Client-Id"] = access_client_id.strip()
+        headers["CF-Access-Client-Secret"] = access_client_secret.strip()
     return headers
 
 
-def check_rtx(base_url: str, api_token: str = "", timeout: int = 8) -> dict[str, Any]:
+def check_rtx(
+    base_url: str, api_token: str = "", timeout: int = 8,
+    access_client_id: str = "", access_client_secret: str = "",
+) -> dict[str, Any]:
     """Check the documented queue homepage and images listing."""
     safe_base = _validate_base_url(base_url)
     result: dict[str, Any] = {"base_url": safe_base, "checks": []}
@@ -61,7 +71,7 @@ def check_rtx(base_url: str, api_token: str = "", timeout: int = 8) -> dict[str,
         try:
             response = requests.get(
                 _endpoint(safe_base, path),
-                headers=_headers(api_token),
+                headers=_headers(api_token, access_client_id, access_client_secret),
                 timeout=timeout,
                 allow_redirects=False,
             )
@@ -92,6 +102,8 @@ def list_images(
     owner: str = "",
     limit: int = 20,
     timeout: int = 15,
+    access_client_id: str = "",
+    access_client_secret: str = "",
 ) -> Any:
     """Read the documented /images endpoint; never submits or changes jobs."""
     params: dict[str, Any] = {"limit": max(1, min(int(limit), 100))}
@@ -101,7 +113,7 @@ def list_images(
         response = requests.get(
             _endpoint(base_url, "/images"),
             params=params,
-            headers=_headers(api_token),
+            headers=_headers(api_token, access_client_id, access_client_secret),
             timeout=timeout,
             allow_redirects=False,
         )
