@@ -13,7 +13,7 @@ def test_independent_t_test():
     assert result["n_a"] == 4
 
 def test_paired_t_test():
-    result = paired_t_test([1,2,3], [2,3,4])
+    result = paired_t_test([1,2,3], [2,4,4])
     assert result["n_pairs"] == 3
 
 def test_linear_regression():
