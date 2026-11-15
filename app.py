@@ -58,6 +58,31 @@ elif page == "AI Science Assistant":
         help="Searches publication metadata and any abstract supplied by Crossref. It does not retrieve or verify full-text papers.",
     )
     st.caption("Turn this on for a question when you want SFW to retrieve relevant publication records and attach their real DOI links.")
+
+    with st.expander("Scientific calculator & unit converter", expanded=False):
+        from sfw.science_tools import calculate_expression, convert_units, CalculationError
+        st.caption("Local calculations run without an AI API. Results are mathematical outputs, not a substitute for checking whether a formula or model fits your experiment.")
+        calc_expr = st.text_input("Expression", placeholder="(12.5 * 3) / 2 or sqrt(81) + pi", key="sfw_calc_expr")
+        if st.button("Calculate expression", key="sfw_calc_button"):
+            try:
+                calc_result = calculate_expression(calc_expr)
+                st.success(f"{calc_result['expression']} = {calc_result['formatted']}")
+            except CalculationError as exc:
+                st.error(str(exc))
+        st.markdown("**Metric and temperature conversion**")
+        u1, u2, u3 = st.columns(3)
+        with u1:
+            unit_value = st.number_input("Value", value=1.0, key="sfw_unit_value")
+        with u2:
+            from_unit = st.selectbox("From", ["m", "cm", "mm", "km", "kg", "g", "mg", "L", "mL", "s", "min", "h", "C", "F", "K"], key="sfw_from_unit")
+        with u3:
+            to_unit = st.selectbox("To", ["m", "cm", "mm", "km", "kg", "g", "mg", "L", "mL", "s", "min", "h", "C", "F", "K"], index=1, key="sfw_to_unit")
+        if st.button("Convert units", key="sfw_convert_button"):
+            try:
+                converted = convert_units(unit_value, from_unit, to_unit)
+                st.success(f"{converted['value']:g} {from_unit} = {converted['result']:.10g} {to_unit}")
+            except CalculationError as exc:
+                st.error(str(exc))
     for msg in st.session_state.chat:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
