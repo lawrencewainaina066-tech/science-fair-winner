@@ -54,7 +54,7 @@ def build_methodology(
     constraints = (constraints or "").strip()
 
     try:
-        sample_size = int(planned_sample_size) if str(planned_sample_size).strip() else None
+        sample_size = None if planned_sample_size is None or not str(planned_sample_size).strip() else int(planned_sample_size)
     except (TypeError, ValueError):
         raise ValueError("Planned sample size must be a whole number.")
     if sample_size is not None and sample_size < 1:
