@@ -1,4 +1,5 @@
 import re
+from urllib.parse import quote, urlparse
 from html import unescape
 from html.parser import HTMLParser
 
@@ -32,18 +33,40 @@ def clean_abstract(value):
     return re.sub(r"\s+", " ", unescape(text)).strip()
 
 
+def _safe_http_url(value):
+    value = str(value or "").strip()
+    parsed = urlparse(value)
+    return value if parsed.scheme in ("http", "https") and parsed.netloc else ""
+
+
+def _publication_year(item):
+    for field in ("published", "published-print", "published-online", "issued", "created"):
+        date_parts = (item.get(field) or {}).get("date-parts") or []
+        if date_parts and date_parts[0]:
+            return date_parts[0][0]
+    return None
+
+
 def search_crossref(query, rows=8):
     """Search Crossref publication metadata, including an abstract when supplied."""
-    if not query or not query.strip():
+    if not query or not str(query).strip():
         return []
+    try:
+        row_count = min(max(int(rows), 1), 20)
+    except (TypeError, ValueError):
+        raise ValueError("The number of publication records must be an integer.")
     response = requests.get(
         CROSSREF,
-        params={"query": query.strip(), "rows": min(max(int(rows), 1), 20)},
+        params={"query": str(query).strip(), "rows": row_count},
         headers={"User-Agent": "ScienceFairWinner/1.0 (educational research assistant)"},
         timeout=20,
     )
     response.raise_for_status()
-    items = response.json().get("message", {}).get("items", [])
+    payload = response.json()
+    message = payload.get("message", {}) if isinstance(payload, dict) else {}
+    items = message.get("items", []) if isinstance(message, dict) else []
+    if not isinstance(items, list):
+        raise ValueError("Crossref returned an unexpected publication-record format.")
     results = []
     for item in items:
         title = (item.get("title") or ["Untitled"])[0]
@@ -55,10 +78,10 @@ def search_crossref(query, rows=8):
         results.append({
             "title": title,
             "authors": author_text or "Author information not supplied",
-            "year": (item.get("published", {}).get("date-parts") or [[None]])[0][0],
+            "year": _publication_year(item),
             "journal": (item.get("container-title") or [""])[0],
-            "doi": item.get("DOI", ""),
-            "url": item.get("URL", ""),
+            "doi": str(item.get("DOI") or "").strip(),
+            "url": _safe_http_url(item.get("URL", "")),
             "type": item.get("type", ""),
             "abstract": clean_abstract(item.get("abstract", "")),
         })
@@ -92,8 +115,9 @@ def format_references(sources):
         doi = str(item.get("doi") or "").strip()
         url = str(item.get("url") or "").strip()
         if doi:
-            detail += f" [https://doi.org/{doi}](https://doi.org/{doi})"
-        elif url.startswith(("https://", "http://")):
+            doi_url = "https://doi.org/" + quote(doi, safe="/")
+            detail += f" [https://doi.org/{_markdown_safe(doi)}]({doi_url})"
+        elif _safe_http_url(url):
             detail += f" [Publication record]({url})"
         lines.append(f"{index}. {detail}")
     return "\n\n" + "\n".join(lines)
