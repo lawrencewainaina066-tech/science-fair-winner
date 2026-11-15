@@ -22,7 +22,7 @@ with st.sidebar:
     st.header("Workspace")
     page = st.radio("Open module", [
         "Home", "AI Science Assistant", "Research Project Planner", "Research Methodology Engine",
-        "Literature Search", "Data Analysis Lab", "Project Library", "About & Settings"
+        "Literature Search", "Data Analysis Lab", "Project Library", "RTX GPU Server", "About & Settings"
     ])
     st.divider()
     st.caption("SFW v1.0.0 • Local-first scientific workspace")
@@ -340,6 +340,53 @@ elif page == "Project Library":
                     st.download_button("Download PDF", build_pdf(p), file_name=f"{path.stem}.pdf", key=f"pdf_{path.stem}")
             except Exception as e:
                 st.error(f"Could not open project: {e}")
+
+elif page == "RTX GPU Server":
+    st.subheader("Remote RTX GPU server")
+    st.write("Connect SFW to the remote media queue through a secure HTTPS endpoint. This page currently performs read-only checks; it does not submit or modify GPU jobs.")
+    from sfw.config import _setting
+    from sfw.rtx import check_rtx, list_images, RTXError
+
+    default_url = _setting("SFW_RTX_BASE_URL")
+    base_url = st.text_input(
+        "RTX service URL",
+        value=default_url,
+        placeholder="https://rtx.wfw.co.ke",
+        help="Use the HTTPS URL provided after the Cloudflare Tunnel is configured. Do not enter the private Tailscale IP here for Streamlit Cloud.",
+    )
+    api_token = st.text_input(
+        "RTX API token (optional)",
+        value=_setting("SFW_RTX_API_TOKEN"),
+        type="password",
+        help="Only enter a token if the RTX API administrator has configured Bearer-token authentication. Store it in Streamlit Secrets for deployment.",
+    )
+    if st.button("Test RTX connection", type="primary"):
+        if not base_url.strip():
+            st.warning("Enter the HTTPS RTX service URL first.")
+        else:
+            with st.spinner("Checking the queue and documented images endpoint..."):
+                try:
+                    report = check_rtx(base_url, api_token)
+                    for check in report["checks"]:
+                        if check["ok"]:
+                            st.success(f"{check['name']}: HTTP {check['status']} — {check['detail']}")
+                        else:
+                            st.error(f"{check['name']}: {check['status'] or 'Connection failed'} — {check['detail']}")
+                    if report["ok"]:
+                        st.session_state.rtx_last_url = base_url.strip()
+                except RTXError as exc:
+                    st.error(str(exc))
+    st.caption("The RTX server's documented read endpoints include / and /images. Job submission is not enabled until the server's submission endpoint and authentication requirements are confirmed.")
+    if st.button("Load recent images"):
+        if not base_url.strip():
+            st.warning("Enter the HTTPS RTX service URL first.")
+        else:
+            try:
+                images = list_images(base_url, api_token, owner="Lawrence", limit=20)
+                st.json(images)
+            except RTXError as exc:
+                st.error(str(exc))
+    st.info("Deployment secrets: SFW_RTX_BASE_URL = \"https://rtx.wfw.co.ke\" and, only if configured by the server administrator, SFW_RTX_API_TOKEN = \"your-token\". Never commit real tokens to GitHub.")
 
 elif page == "About & Settings":
     st.subheader("About SFW")
