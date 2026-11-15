@@ -39,6 +39,12 @@ def _safe_http_url(value):
     return value if parsed.scheme in ("http", "https") and parsed.netloc else ""
 
 
+def doi_url(value):
+    """Build a safe DOI resolver URL from Crossref metadata."""
+    doi = str(value or "").strip()
+    return "https://doi.org/" + quote(doi, safe="/") if doi else ""
+
+
 def _publication_year(item):
     for field in ("published", "published-print", "published-online", "issued", "created"):
         date_parts = (item.get(field) or {}).get("date-parts") or []
@@ -115,8 +121,8 @@ def format_references(sources):
         doi = str(item.get("doi") or "").strip()
         url = str(item.get("url") or "").strip()
         if doi:
-            doi_url = "https://doi.org/" + quote(doi, safe="/")
-            detail += f" [https://doi.org/{_markdown_safe(doi)}]({doi_url})"
+            resolver_url = doi_url(doi)
+            detail += f" [https://doi.org/{_markdown_safe(doi)}]({resolver_url})"
         elif _safe_http_url(url):
             detail += f" [Publication record]({url})"
         lines.append(f"{index}. {detail}")
