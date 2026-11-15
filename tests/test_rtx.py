@@ -42,3 +42,8 @@ def test_rtx_headers_do_not_send_incomplete_cloudflare_credentials():
     headers = rtx._headers("", "access-id", "")
     assert "CF-Access-Client-Id" not in headers
     assert "CF-Access-Client-Secret" not in headers
+
+
+def test_rtx_rejects_malformed_url():
+    with pytest.raises(rtx.RTXError):
+        rtx._validate_base_url("https://rtx.example.com:not-a-port")
