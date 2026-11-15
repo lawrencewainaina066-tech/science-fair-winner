@@ -7,7 +7,39 @@ agriculture, mathematics, health and engineering. Explain methods clearly and ad
 Never invent citations, datasets, experimental observations, measurements or results. Separate established
 evidence from hypotheses, estimates and suggestions. State assumptions, units, uncertainty and limitations.
 Recommend safe, ethical, supervised methods. Do not present simulations as real experiments. Encourage
-users to verify important claims against primary sources. When evidence is missing, say so explicitly."""
+users to verify important claims against primary sources. When evidence is missing, say so explicitly.
+For scientific claims, avoid false precision and overgeneralisation. Explain when findings depend on species,
+cultivar, soil type, climate, experimental conditions or study design. Distinguish correlation from causation.
+Do not claim that a treatment is effective, safe or optimal without adequate evidence."""
+
+
+def _system_prompt(research_sources=None):
+    """Add explicitly retrieved Crossref records without treating metadata as full text."""
+    if not research_sources:
+        return SYSTEM_PROMPT
+    source_lines = [
+        "",
+        "RETRIEVED CROSSREF RECORDS FOR THIS QUESTION:",
+        "The records below were retrieved from Crossref during this request. They are metadata, not full-text papers.",
+        "Use only the numbered records below for source citations. Never invent a source or DOI.",
+        "Cite relevant records in the answer as [1], [2], etc. Cite only when the supplied abstract or metadata genuinely supports the point.",
+        "If a record has no abstract, its title and bibliographic metadata alone do not establish its findings.",
+        "If these records do not adequately support a claim, say that further full-text research is needed.",
+    ]
+    for index, source in enumerate(research_sources[:8], start=1):
+        source_lines.append(
+            f"[{index}] Title: {source.get('title') or 'Not supplied'}; "
+            f"Authors: {source.get('authors') or 'Not supplied'}; "
+            f"Year: {source.get('year') or 'Not supplied'}; "
+            f"Journal: {source.get('journal') or 'Not supplied'}; "
+            f"DOI: {source.get('doi') or 'Not supplied'}."
+        )
+        abstract = (source.get("abstract") or "").strip()
+        if abstract:
+            source_lines.append(f"Abstract supplied by Crossref: {abstract[:2200]}")
+        else:
+            source_lines.append("Abstract: Not supplied by Crossref.")
+    return SYSTEM_PROMPT + "\n\n" + "\n".join(source_lines)
 
 
 def _raise_provider_error(response, provider):
@@ -20,9 +52,10 @@ def _raise_provider_error(response, provider):
     raise RuntimeError(f"{provider} API error ({response.status_code}): {detail[:700]}")
 
 
-def ask_ai(messages):
+def ask_ai(messages, research_sources=None):
     cfg = ai_settings()
     provider = cfg["provider"]
+    system_prompt = _system_prompt(research_sources)
 
     if provider == "gemini" and cfg["gemini_key"]:
         contents = []
@@ -30,9 +63,9 @@ def ask_ai(messages):
             role = "model" if message["role"] == "assistant" else "user"
             contents.append({"role": role, "parts": [{"text": str(message["content"])}]})
         payload = {
-            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "system_instruction": {"parts": [{"text": system_prompt}]},
             "contents": contents,
-            "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1800}
+            "generationConfig": {"temperature": 0.25, "maxOutputTokens": 1800}
         }
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -53,7 +86,7 @@ def ask_ai(messages):
     if provider == "anthropic" and cfg["anthropic_key"]:
         payload = {
             "model": cfg["anthropic_model"], "max_tokens": 1800,
-            "system": SYSTEM_PROMPT,
+            "system": system_prompt,
             "messages": [{"role": m["role"], "content": m["content"]} for m in messages[-12:]]
         }
         r = requests.post(
@@ -69,7 +102,7 @@ def ask_ai(messages):
     if provider == "openai" and cfg["openai_key"]:
         payload = {
             "model": cfg["openai_model"],
-            "messages": [{"role": "system", "content": SYSTEM_PROMPT}] +
+            "messages": [{"role": "system", "content": system_prompt}] +
                         [{"role": m["role"], "content": m["content"]} for m in messages[-12:]]
         }
         r = requests.post(
