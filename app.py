@@ -316,11 +316,17 @@ elif page == "Literature Search":
     query = st.text_input("Search topic or keywords", placeholder="e.g. biochar soil fertility maize yield")
     count = st.slider("Maximum records", 3, 20, 8)
     if st.button("Search publications", type="primary"):
-        try:
-            results = search_crossref(query, count)
-            st.session_state.literature_results = results
-        except Exception as e:
-            st.error(f"Literature search failed: {e}")
+        st.session_state.literature_results = []
+        if not query.strip():
+            st.warning("Enter a topic or keywords before searching.")
+        else:
+            try:
+                results = search_crossref(query, count)
+                st.session_state.literature_results = results
+                if not results:
+                    st.info("Crossref did not return records for this search. Try broader or alternative keywords.")
+            except Exception as e:
+                st.error(f"Literature search failed: {e}")
     for item in st.session_state.get("literature_results", []):
         with st.container(border=True):
             st.markdown(f"**{item['title']}**")
@@ -330,6 +336,11 @@ elif page == "Literature Search":
             elif item["url"]:
                 st.markdown(f"[Open record]({item['url']})")
             st.caption(f"Type: {item['type'] or 'Not supplied'}")
+            if item.get("abstract"):
+                with st.expander("Abstract supplied by Crossref"):
+                    st.write(item["abstract"])
+            else:
+                st.caption("No abstract was supplied in the Crossref metadata.")
 
 elif page == "Data Analysis Lab":
     st.subheader("Scientific data analysis")
