@@ -57,3 +57,25 @@ def test_messages_discard_unknown_roles_and_blank_content():
     assert assistant._normalise_messages(messages) == [
         {"role": "user", "content": "What is diffusion?"}
     ]
+
+
+def test_science_prompt_includes_discipline_level_and_mode():
+    prompt = assistant.build_science_prompt(
+        "How does compost affect maize growth?",
+        discipline="Agriculture",
+        level="Undergraduate",
+        mode="Plan an experiment",
+    )
+    assert "Agriculture" in prompt
+    assert "Undergraduate" in prompt
+    assert "testable question" in prompt
+    assert "How does compost affect maize growth?" in prompt
+
+
+def test_science_prompt_rejects_empty_question():
+    try:
+        assistant.build_science_prompt("   ")
+    except ValueError as exc:
+        assert "question" in str(exc).lower()
+    else:
+        raise AssertionError("An empty research question should be rejected")
