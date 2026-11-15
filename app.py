@@ -468,8 +468,17 @@ elif page == "About & Settings":
     st.write("Science Fair Winner is a modular scientific research-support platform. It combines a conversational AI connection (optional), research planning, scholarly metadata search, data analysis and report generation.")
     st.markdown("#### Configure an AI provider")
     st.write("For Streamlit Community Cloud, add these values in Manage app → Settings → Secrets. For local development, place the same values in .streamlit/secrets.toml or a private .env file.")
-    st.code('SFW_AI_PROVIDER = "gemini"\nGEMINI_API_KEY = "your_google_ai_studio_key"\nGEMINI_MODEL = "gemini-3.5-flash-lite"', language="toml")
-    st.caption("Model availability, free-tier limits and data handling depend on Google’s current AI Studio terms and your account. Check those terms before sending research material. Never commit API keys to GitHub or share them in screenshots.")
+    provider_tabs = st.tabs(["Google Gemini", "Anthropic", "OpenAI"])
+    with provider_tabs[0]:
+        st.code('SFW_AI_PROVIDER = "gemini"\nGEMINI_API_KEY = "your_google_ai_studio_key"\nGEMINI_MODEL = "gemini-3.5-flash-lite"', language="toml")
+        st.caption("Create and manage a key through Google AI Studio. Confirm the selected model is available to your account.")
+    with provider_tabs[1]:
+        st.code('SFW_AI_PROVIDER = "anthropic"\nANTHROPIC_API_KEY = "your_anthropic_api_key"\nANTHROPIC_MODEL = "claude-3-5-sonnet-latest"', language="toml")
+        st.caption("Use an API key from the Anthropic Console and a model enabled for your account.")
+    with provider_tabs[2]:
+        st.code('SFW_AI_PROVIDER = "openai"\nOPENAI_API_KEY = "your_openai_api_key"\nOPENAI_MODEL = "gpt-4.1-mini"', language="toml")
+        st.caption("Use an API key from the OpenAI platform and a model enabled for your account.")
+    st.caption("Add only one provider configuration to Streamlit Secrets. Model availability, pricing, quotas and data handling depend on the provider and your account. The assistant's Test AI connection button sends a short API request that may consume quota. Never commit API keys to GitHub or share them in screenshots.")
     st.markdown("#### Data and privacy")
     st.write("Projects are saved locally under data/projects. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
     st.markdown("#### Current limitations")
