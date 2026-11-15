@@ -101,11 +101,14 @@ The RTX connector is designed for a separate GPU host exposed through a public H
 
 ```toml
 SFW_RTX_BASE_URL = "https://your-rtx-host.example"
-# Only if the RTX API administrator has enabled Bearer authentication:
-SFW_RTX_API_TOKEN = "your_token"
+# Cloudflare Access service token (recommended when Access is enabled):
+SFW_RTX_ACCESS_CLIENT_ID = "your_client_id"
+SFW_RTX_ACCESS_CLIENT_SECRET = "your_client_secret"
+# Only if the RTX backend separately requires Bearer authentication:
+SFW_RTX_API_TOKEN = "your_backend_token"
 ```
 
-The hosted connector rejects plain HTTP, local/private network destinations and unsafe redirects. It currently reads only the documented queue homepage and /images endpoint. It does not submit, cancel or modify GPU jobs. Do not expose the RTX API publicly without authentication, access controls and rate limiting.
+The hosted connector rejects plain HTTP, local/private network destinations and unsafe redirects. It supports Cloudflare Access service-token headers and an optional separate backend Bearer token. It currently reads only the documented queue homepage and /images endpoint. It does not submit, cancel or modify GPU jobs. Do not expose the RTX API publicly without authentication, access controls and rate limiting.
 
 ## Tests
 
