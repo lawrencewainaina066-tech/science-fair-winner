@@ -88,4 +88,4 @@ def test_reference_formatter_uses_safe_doi_url_and_escapes_title():
 
 
 def test_doi_url_encodes_metadata_for_safe_resolver_link():
-    assert literature.doi_url("10.1234/a(b)") == "https://doi.org/10.1234/a%28b)"
+    assert literature.doi_url("10.1234/a(b)") == "https://doi.org/10.1234/a%28b%29"
