@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from sfw.config import APP_NAME, APP_TAGLINE, ROOT, PROJECT_DIR
+from sfw.config import APP_NAME, APP_TAGLINE, ROOT, PROJECT_DIR, _setting
 from sfw.planner import build_research_plan, DISCIPLINES
 from sfw.methodology import (build_methodology, DESIGN_OPTIONS, OBJECTIVES, OUTCOME_TYPES, SAMPLING_METHODS)
 from sfw.analysis import (load_table, numeric_summary, correlation_matrix, independent_t_test,
@@ -17,6 +17,7 @@ from sfw.reporting import build_docx, build_pdf
 st.set_page_config(page_title=APP_NAME, page_icon="🔬", layout="wide")
 st.title("🔬 Science Fair Winner (SFW)")
 st.caption(APP_TAGLINE)
+shared_project_library_enabled = _setting("SFW_ENABLE_SHARED_PROJECT_LIBRARY", "false").lower() in ("1", "true", "yes", "on")
 
 with st.sidebar:
     st.header("Workspace")
@@ -199,9 +200,11 @@ elif page == "Research Project Planner":
         st.caption(p["integrity_note"])
         a, b, c = st.columns(3)
         with a:
-            if st.button("Save project"):
+            if st.button("Save project", disabled=not shared_project_library_enabled):
                 path = save_project(p["title"], p)
                 st.success(f"Saved: {path.name}")
+        if not shared_project_library_enabled:
+            st.caption("Project saving is disabled by default because this deployment has no user accounts or private per-user storage. Download a copy, or enable shared storage only on a private single-user app.")
         with b:
             st.download_button("Download DOCX", build_docx(p), file_name="SFW_Research_Plan.docx")
         with c:
@@ -431,22 +434,27 @@ elif page == "Data Analysis Lab":
 
 elif page == "Project Library":
     st.subheader("Saved research projects")
-    projects = list_projects()
-    if not projects:
-        st.info("No saved projects yet. Create one in Research Project Planner.")
-    for path in projects:
-        with st.expander(path.stem):
-            try:
-                p = read_project(path)
-                st.write(p.get("problem_statement", ""))
-                st.json(p)
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.download_button("Download DOCX", build_docx(p), file_name=f"{path.stem}.docx", key=f"docx_{path.stem}")
-                with c2:
-                    st.download_button("Download PDF", build_pdf(p), file_name=f"{path.stem}.pdf", key=f"pdf_{path.stem}")
-            except Exception as e:
-                st.error(f"Could not open project: {e}")
+    if not shared_project_library_enabled:
+        st.warning("The shared Project Library is disabled. This app does not yet have sign-in or private per-user storage, so enabling a shared library could expose saved projects to other app visitors.")
+        st.info("Download your research plans as DOCX or PDF from the Research Project Planner. Enable SFW_ENABLE_SHARED_PROJECT_LIBRARY only on a private, trusted, single-user deployment.")
+    else:
+        st.warning("Shared-library mode is enabled. Every person who can access this app may be able to view and download saved projects. Do not store confidential or personal research data here.")
+        projects = list_projects()
+        if not projects:
+            st.info("No saved projects yet. Create one in Research Project Planner.")
+        for path in projects:
+            with st.expander(path.stem):
+                try:
+                    p = read_project(path)
+                    st.write(p.get("problem_statement", ""))
+                    st.json(p)
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.download_button("Download DOCX", build_docx(p), file_name=f"{path.stem}.docx", key=f"docx_{path.stem}")
+                    with c2:
+                        st.download_button("Download PDF", build_pdf(p), file_name=f"{path.stem}.pdf", key=f"pdf_{path.stem}")
+                except Exception as e:
+                    st.error(f"Could not open project: {e}")
 
 elif page == "RTX GPU Server":
     st.subheader("Remote RTX GPU server")
