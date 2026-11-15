@@ -102,5 +102,5 @@ def format_references(sources):
 def unmatched_citation_numbers(answer, sources):
     """Return citation numbers in the AI answer that have no retrieved Crossref record."""
     valid_count = len(sources or [])
-    cited = {int(number) for number in re.findall(r"\\[(\\d+)\\]", answer or "")}
+    cited = {int(number) for number in re.findall(r"\[(\d+)\]", answer or "")}
     return sorted(number for number in cited if number < 1 or number > valid_count)
