@@ -13,6 +13,32 @@ cultivar, soil type, climate, experimental conditions or study design. Distingui
 Do not claim that a treatment is effective, safe or optimal without adequate evidence."""
 
 
+def ai_provider_status():
+    """Return safe, non-secret information about the selected AI provider."""
+    cfg = ai_settings()
+    provider = cfg.get("provider", "").strip().lower()
+    settings = {
+        "gemini": ("Gemini", cfg.get("gemini_key"), cfg.get("gemini_model")),
+        "anthropic": ("Anthropic", cfg.get("anthropic_key"), cfg.get("anthropic_model")),
+        "openai": ("OpenAI", cfg.get("openai_key"), cfg.get("openai_model")),
+    }
+    if not provider:
+        return {"configured": False, "provider": "Not selected", "model": "", 
+                "message": "Choose a provider and add its API key in Streamlit Secrets."}
+    if provider not in settings:
+        return {"configured": False, "provider": provider, "model": "",
+                "message": "Unsupported provider. Use gemini, anthropic or openai."}
+    label, key, model = settings[provider]
+    if not key:
+        return {"configured": False, "provider": label, "model": model or "",
+                "message": f"{label} is selected, but its API key is missing."}
+    if not model:
+        return {"configured": False, "provider": label, "model": "",
+                "message": f"{label} is selected, but its model name is missing."}
+    return {"configured": True, "provider": label, "model": model,
+            "message": f"{label} is configured. Run the connection test to verify API access."}
+
+
 def _system_prompt(research_sources=None):
     """Add explicitly retrieved Crossref records without treating metadata as full text."""
     if not research_sources:
@@ -36,10 +62,10 @@ def _system_prompt(research_sources=None):
             f"DOI: {source.get('doi') or 'Not supplied'}."
         )
         abstract = (source.get("abstract") or "").strip()
-        if abstract:
-            source_lines.append(f"Abstract supplied by Crossref: {abstract[:2200]}")
-        else:
-            source_lines.append("Abstract: Not supplied by Crossref.")
+        source_lines.append(
+            f"Abstract supplied by Crossref: {abstract[:2200]}" if abstract
+            else "Abstract: Not supplied by Crossref."
+        )
     return SYSTEM_PROMPT + "\n\n" + "\n".join(source_lines)
 
 
@@ -47,22 +73,45 @@ def _raise_provider_error(response, provider):
     if response.ok:
         return
     try:
-        detail = response.json().get("error", {}).get("message", response.text)
+        payload = response.json()
+        error = payload.get("error", {})
+        detail = error.get("message") or error.get("type") or response.text
     except Exception:
         detail = response.text
-    raise RuntimeError(f"{provider} API error ({response.status_code}): {detail[:700]}")
+    raise RuntimeError(f"{provider} API error ({response.status_code}): {str(detail)[:700]}")
+
+
+def _normalise_messages(messages):
+    """Keep only valid conversational roles and text content."""
+    if not isinstance(messages, list) or not messages:
+        raise ValueError("Add a scientific question before requesting an AI response.")
+    clean = []
+    for message in messages[-12:]:
+        role = message.get("role") if isinstance(message, dict) else None
+        content = message.get("content") if isinstance(message, dict) else None
+        if role not in ("user", "assistant") or content is None:
+            continue
+        content = str(content).strip()
+        if content:
+            clean.append({"role": role, "content": content})
+    if not clean or clean[-1]["role"] != "user":
+        raise ValueError("The latest conversation message must be a user question.")
+    return clean
 
 
 def ask_ai(messages, research_sources=None):
+    """Send a scientific conversation to the selected provider; return None when unconfigured."""
     cfg = ai_settings()
     provider = cfg["provider"]
+    clean_messages = _normalise_messages(messages)
     system_prompt = _system_prompt(research_sources)
 
     if provider == "gemini" and cfg["gemini_key"]:
-        contents = []
-        for message in messages[-12:]:
-            role = "model" if message["role"] == "assistant" else "user"
-            contents.append({"role": role, "parts": [{"text": str(message["content"])}]})
+        contents = [
+            {"role": "model" if message["role"] == "assistant" else "user",
+             "parts": [{"text": message["content"]}]}
+            for message in clean_messages
+        ]
         payload = {
             "system_instruction": {"parts": [{"text": system_prompt}]},
             "contents": contents,
@@ -78,17 +127,18 @@ def ask_ai(messages, research_sources=None):
         )
         _raise_provider_error(r, "Gemini")
         data = r.json()
-        return "\n".join(
-            part.get("text", "")
-            for part in data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-            if part.get("text")
-        ).strip()
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        answer = "\n".join(part.get("text", "") for part in parts if part.get("text")).strip()
+        if not answer:
+            reason = data.get("promptFeedback", {}).get("blockReason") or "No text was returned."
+            raise RuntimeError(f"Gemini did not return an answer. {reason}")
+        return answer
 
     if provider == "anthropic" and cfg["anthropic_key"]:
         payload = {
             "model": cfg["anthropic_model"], "max_tokens": 1800,
             "system": system_prompt,
-            "messages": [{"role": m["role"], "content": m["content"]} for m in messages[-12:]]
+            "messages": clean_messages
         }
         r = requests.post(
             "https://api.anthropic.com/v1/messages", json=payload, timeout=90,
@@ -96,22 +146,30 @@ def ask_ai(messages, research_sources=None):
                      "content-type": "application/json"}
         )
         _raise_provider_error(r, "Anthropic")
-        return "\n".join(
-            x.get("text", "") for x in r.json().get("content", []) if x.get("type") == "text"
-        )
+        answer = "\n".join(
+            item.get("text", "") for item in r.json().get("content", [])
+            if item.get("type") == "text"
+        ).strip()
+        if not answer:
+            raise RuntimeError("Anthropic returned no text. Check the model response and account limits.")
+        return answer
 
     if provider == "openai" and cfg["openai_key"]:
         payload = {
             "model": cfg["openai_model"],
-            "messages": [{"role": "system", "content": system_prompt}] +
-                        [{"role": m["role"], "content": m["content"]} for m in messages[-12:]]
+            "max_tokens": 1800,
+            "messages": [{"role": "system", "content": system_prompt}] + clean_messages
         }
         r = requests.post(
             "https://api.openai.com/v1/chat/completions", json=payload, timeout=90,
             headers={"Authorization": f"Bearer {cfg['openai_key']}", "Content-Type": "application/json"}
         )
         _raise_provider_error(r, "OpenAI")
-        return r.json()["choices"][0]["message"]["content"]
+        choices = r.json().get("choices", [])
+        answer = choices[0].get("message", {}).get("content", "").strip() if choices else ""
+        if not answer:
+            raise RuntimeError("OpenAI returned no text. Check the model response and account limits.")
+        return answer
 
     return None
 
