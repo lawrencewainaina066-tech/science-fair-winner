@@ -1,4 +1,4 @@
-from sfw.literature import clean_abstract, format_references
+from sfw.literature import clean_abstract, format_references, unmatched_citation_numbers
 
 
 def test_clean_abstract_removes_markup_and_normalizes_whitespace():
@@ -24,3 +24,8 @@ def test_format_references_uses_only_supplied_crossref_records():
 
 def test_format_references_returns_empty_string_without_records():
     assert format_references([]) == ""
+
+
+def test_unmatched_citation_numbers_flags_only_missing_records():
+    sources = [{"title": "One source"}, {"title": "Second source"}]
+    assert unmatched_citation_numbers("Supported [1] and [2], unsupported [3].", sources) == [3]
