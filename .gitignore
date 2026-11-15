@@ -8,3 +8,7 @@ data/projects/*
 outputs/*
 !outputs/.gitkeep
 .streamlit/secrets.toml
+
+.dev.vars
+.wrangler/
+node_modules/
