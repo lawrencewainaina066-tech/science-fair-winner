@@ -384,24 +384,45 @@ elif page == "Data Analysis Lab":
                         st.write({k:v for k,v in result.items() if k not in ("data","x_label","y_label")})
                         st.plotly_chart(px.scatter(result["data"], x=x, y=y, trendline="ols", title=f"{y} versus {x}"), use_container_width=True)
             with st.expander("Statistical tests"):
-                test = st.selectbox("Test", ["Welch independent t-test", "Paired t-test"])
+                st.caption("Enter your own observed values. SFW does not prefill fictional measurements. Check independence, sampling, distribution and test assumptions before interpreting results.")
+                test = st.selectbox("Test", ["Welch independent t-test", "Paired t-test", "Chi-square test"])
+                alpha = st.selectbox("Significance level (alpha)", [0.05, 0.01], format_func=lambda value: f"{value:g}")
                 if test == "Welch independent t-test":
-                    g1 = st.text_area("Group A values (comma-separated)", "12, 13, 11, 14")
-                    g2 = st.text_area("Group B values (comma-separated)", "15, 16, 14, 17")
+                    g1 = st.text_area("Group A values (comma-separated)", placeholder="e.g. 12, 13, 11, 14")
+                    g2 = st.text_area("Group B values (comma-separated)", placeholder="e.g. 15, 16, 14, 17")
                     if st.button("Calculate Welch t-test"):
                         try:
-                            result = independent_t_test(g1.split(","), g2.split(","))
+                            result = independent_t_test(g1.split(","), g2.split(","), alpha=alpha)
                             st.json(result)
-                            st.info(interpret_p_value(result["p_value"]))
+                            st.info(interpret_p_value(result["p_value"], alpha=alpha))
+                            st.caption("The confidence interval is for mean(Group A) minus mean(Group B). Cohen's d is a standardised descriptive effect size.")
                         except Exception as e: st.error(str(e))
-                else:
-                    before = st.text_area("Before values (comma-separated)", "10, 12, 11, 9")
-                    after = st.text_area("After values (comma-separated)", "12, 13, 13, 11")
+                elif test == "Paired t-test":
+                    before = st.text_area("Before values (comma-separated)", placeholder="e.g. 10, 12, 11, 9")
+                    after = st.text_area("After values (comma-separated)", placeholder="e.g. 12, 13, 13, 11")
                     if st.button("Calculate paired t-test"):
                         try:
-                            result = paired_t_test(before.split(","), after.split(","))
+                            result = paired_t_test(before.split(","), after.split(","), alpha=alpha)
                             st.json(result)
-                            st.info(interpret_p_value(result["p_value"]))
+                            st.info(interpret_p_value(result["p_value"], alpha=alpha))
+                            st.caption("The confidence interval is for mean(After − Before). Cohen's dz is a standardised paired-change effect size.")
+                        except Exception as e: st.error(str(e))
+                else:
+                    contingency_text = st.text_area(
+                        "Contingency table (comma-separated columns; semicolon-separated rows)",
+                        placeholder="e.g. 12, 8; 5, 15",
+                    )
+                    if st.button("Calculate chi-square test"):
+                        try:
+                            rows = [[float(value.strip()) for value in row.split(",")]
+                                    for row in contingency_text.strip().split(";") if row.strip()]
+                            if not rows or len({len(row) for row in rows}) != 1 or len(rows) < 2 or len(rows[0]) < 2:
+                                raise ValueError("Enter a rectangular table with at least two rows and two columns.")
+                            result = chi_square_test(rows)
+                            st.json(result)
+                            st.info(interpret_p_value(result["p_value"], alpha=alpha))
+                            if result["small_expected_frequency_warning"]:
+                                st.warning("Some expected cell frequencies are below 5. The chi-square approximation may be unreliable; consider an exact or alternative method.")
                         except Exception as e: st.error(str(e))
         except Exception as e:
             st.error(f"Could not read the dataset: {e}")
