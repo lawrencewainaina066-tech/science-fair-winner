@@ -110,7 +110,7 @@ Science_Fair_Winner/
     └── SFW_Multidiscipline_Data_Kit_original.zip
 ```
 
-The two earlier SFW ZIP archives are preserved byte-for-byte in `reference_archives/` as reference materials.
+The large poster image and original ZIP archives are not included in this GitHub source upload. They remain available in the separate complete build package.
 
 ## 7. Run tests
 
