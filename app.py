@@ -8,7 +8,7 @@ from sfw.config import APP_NAME, APP_TAGLINE, ROOT, PROJECT_DIR
 from sfw.planner import build_research_plan, DISCIPLINES
 from sfw.analysis import (load_table, numeric_summary, correlation_matrix, independent_t_test,
                          paired_t_test, chi_square_test, linear_regression, interpret_p_value)
-from sfw.literature import search_crossref
+from sfw.literature import search_crossref, format_references
 from sfw.assistant import ask_ai, local_guidance
 from sfw.storage import save_project, list_projects, read_project
 from sfw.reporting import build_docx, build_pdf
@@ -51,6 +51,12 @@ if page == "Home":
 elif page == "AI Science Assistant":
     st.subheader("Scientific conversation")
     st.caption("Configure an AI provider under About & Settings for model-powered responses. Without a key, SFW provides an offline research framework.")
+    use_crossref = st.checkbox(
+        "Search Crossref and ground this answer in retrieved publication records",
+        value=False,
+        help="Searches publication metadata and any abstract supplied by Crossref. It does not retrieve or verify full-text papers.",
+    )
+    st.caption("Turn this on for a question when you want SFW to retrieve relevant publication records and attach their real DOI links.")
     for msg in st.session_state.chat:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
@@ -61,12 +67,22 @@ elif page == "AI Science Assistant":
             st.markdown(prompt)
         with st.chat_message("assistant"):
             with st.spinner("Working through your question..."):
+                sources = []
+                if use_crossref:
+                    try:
+                        sources = search_crossref(prompt, rows=5)
+                        if not sources:
+                            st.info("Crossref returned no publication records for this query. The answer will not include a generated reference list.")
+                    except Exception as e:
+                        st.warning(f"Crossref search was unavailable: {e}. Continuing without retrieved sources.")
                 try:
-                    answer = ask_ai(st.session_state.chat)
+                    answer = ask_ai(st.session_state.chat, research_sources=sources)
                     if not answer:
                         answer = local_guidance(prompt)
                 except Exception as e:
                     answer = f"AI provider request failed: {e}\n\nYou can check your API key, provider setting and internet connection. Offline guidance:\n\n{local_guidance(prompt)}"
+                if sources:
+                    answer += format_references(sources)
                 st.markdown(answer)
         st.session_state.chat.append({"role": "assistant", "content": answer})
     if st.button("Clear conversation"):
@@ -220,7 +236,7 @@ elif page == "About & Settings":
     st.markdown("#### Configure an AI provider")
     st.write("For Streamlit Community Cloud, add these values in Manage app → Settings → Secrets. For local development, place the same values in .streamlit/secrets.toml or a private .env file.")
     st.code('SFW_AI_PROVIDER = "gemini"\nGEMINI_API_KEY = "your_google_ai_studio_key"\nGEMINI_MODEL = "gemini-3.5-flash-lite"', language="toml")
-    st.caption("Gemini 2.5 Flash-Lite has a free API tier with usage limits. Never commit API keys to GitHub or share them in screenshots. Free-tier requests may be used by Google to improve its products.")
+    st.caption("Model availability, free-tier limits and data handling depend on Google’s current AI Studio terms and your account. Check those terms before sending research material. Never commit API keys to GitHub or share them in screenshots.")
     st.markdown("#### Data and privacy")
     st.write("Projects are saved locally under data/projects. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
     st.markdown("#### Current limitations")
