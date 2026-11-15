@@ -33,7 +33,7 @@ def ai_settings():
         "gemini_key": _setting("GEMINI_API_KEY"),
         "gemini_model": _setting("GEMINI_MODEL", "gemini-3.5-flash-lite"),
         "anthropic_key": _setting("ANTHROPIC_API_KEY"),
-        "anthropic_model": _setting("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
+        "anthropic_model": _setting("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
         "openai_key": _setting("OPENAI_API_KEY"),
-        "openai_model": _setting("OPENAI_MODEL", "gpt-4.1-mini"),
+        "openai_model": _setting("OPENAI_MODEL", "gpt-6-luna"),
     }
