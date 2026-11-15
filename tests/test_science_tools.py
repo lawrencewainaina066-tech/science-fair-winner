@@ -36,3 +36,13 @@ def test_temperature_conversion():
 def test_incompatible_units_are_rejected():
     with pytest.raises(CalculationError):
         convert_units(1, "kg", "m")
+
+
+def test_calculator_rejects_boolean_literals():
+    with pytest.raises(CalculationError):
+        calculate_expression("True + 1")
+
+
+def test_temperature_below_absolute_zero_is_rejected():
+    with pytest.raises(CalculationError):
+        convert_units(-274, "C", "K")
