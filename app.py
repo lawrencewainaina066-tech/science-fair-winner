@@ -9,7 +9,7 @@ from sfw.planner import build_research_plan, DISCIPLINES
 from sfw.methodology import (build_methodology, DESIGN_OPTIONS, OBJECTIVES, OUTCOME_TYPES, SAMPLING_METHODS)
 from sfw.analysis import (load_table, numeric_summary, correlation_matrix, independent_t_test,
                          paired_t_test, chi_square_test, linear_regression, interpret_p_value)
-from sfw.literature import search_crossref, format_references, unmatched_citation_numbers
+from sfw.literature import search_crossref, format_references, unmatched_citation_numbers, doi_url
 from sfw.assistant import ask_ai, local_guidance, ai_provider_status, build_science_prompt
 from sfw.storage import save_project, list_projects, read_project
 from sfw.reporting import build_docx, build_pdf
@@ -335,7 +335,8 @@ elif page == "Literature Search":
             st.markdown(f"**{item['title']}**")
             st.write(f"{item['authors']} • {item['year'] or 'Year not supplied'} • {item['journal']}")
             if item["doi"]:
-                st.markdown(f"[DOI: {item['doi']}](https://doi.org/{item['doi']})")
+                st.write(f"DOI: {item['doi']}")
+                st.markdown(f"[Open DOI record]({doi_url(item['doi'])})")
             elif item["url"]:
                 st.markdown(f"[Open record]({item['url']})")
             st.caption(f"Type: {item['type'] or 'Not supplied'}")
