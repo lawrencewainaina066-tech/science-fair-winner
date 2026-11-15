@@ -63,7 +63,7 @@ Streamlit Cloud installs packages from requirements.txt. Do not commit .env, .st
 
 ### Important: project persistence
 
-The Project Library currently writes JSON files to the app's local data/projects/ directory. This is suitable for local development, but the filesystem of a hosted app should not be treated as durable storage across rebuilds, restarts or redeployments. Back up local projects. For reliable multi-user cloud storage, SFW still needs a configured persistent database or object-storage service and user access controls.
+The Project Library writes JSON files to the app's local data/projects/ directory. Shared-library mode is disabled by default because SFW does not yet have sign-in or private per-user storage; enabling it could expose saved plans to other app visitors. Set SFW_ENABLE_SHARED_PROJECT_LIBRARY=true only for a private, trusted, single-user deployment. The filesystem of a hosted app should not be treated as durable storage across rebuilds, restarts or redeployments. Back up local projects. Reliable multi-user cloud storage still requires a persistent database/object store and user access controls.
 
 ## Optional AI provider setup
 
@@ -151,7 +151,7 @@ requirements.txt
 - Obtain required supervision, ethics approval and safety review for work involving people, animals, pathogens, hazardous chemicals or other risks.
 - The methodology engine flags common issues; it does not calculate a defensible sample size or certify a protocol.
 - The RTX integration is read-only until the remote server's job-submission contract and authentication are confirmed.
-- Cloud project persistence, user accounts, role-based access and collaboration are not yet implemented.
+- Durable cloud project persistence, user accounts, role-based access and collaboration are not yet implemented. Shared project saving is disabled by default on the app.
 
 ## Security
 
