@@ -16,7 +16,7 @@ Science Fair Winner combines an optional AI science assistant with research plan
 - **Literature Search:** search Crossref and inspect available publication metadata and abstracts.
 - **Data Analysis Lab:** CSV/Excel import, data-quality checks, descriptive statistics, plots, correlations, linear regression, independent and paired t-tests, chi-square tests, confidence intervals and effect-size summaries.
 - **Scientific Calculator and Unit Converter:** safe arithmetic and selected mathematical functions, metric conversions and temperature conversions.
-- **Project Library:** save and reopen local project plans without silently overwriting a project with the same title.
+- **Project Library:** opt-in local/shared project storage; shared saving is disabled by default on hosted deployments without user authentication, and duplicate titles do not silently overwrite earlier files.
 - **Report Builder:** export research plans as DOCX and PDF.
 - **RTX GPU connector:** read-only connection checks and image-list retrieval through a configured public HTTPS endpoint. GPU job submission is intentionally disabled until the server's authenticated submission API is documented and tested.
 
