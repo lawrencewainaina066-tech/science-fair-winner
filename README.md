@@ -12,6 +12,7 @@ SFW is a runnable Python/Streamlit application. It combines research planning, o
 - AI Science Assistant: connect a Gemini, Anthropic or OpenAI API key; offline research-planning guidance remains available without a key.
 - Source-grounded answers: optionally search Crossref for publication records and available abstracts, instruct the AI to cite only those retrieved records, and append DOI links generated from the actual metadata.
 - Research Project Planner: draft problem statements, aims, research questions, hypotheses, variables and method outlines.
+- Research Methodology Engine: draft methodology plans and flag mismatches between study design, objective, outcome type, sample size, groups and repeated measurements; recommendations are guidance, not statistical validation.
 - Literature Search: retrieve scholarly publication metadata from Crossref.
 - Data Analysis Lab: import CSV/Excel, inspect missing values, calculate descriptive statistics, explore distributions and correlations, run linear regression and selected t-tests.
 - Project Library: save and reopen plans locally.
