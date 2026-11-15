@@ -133,7 +133,7 @@ pytest -q
 
 This is a functional first release, not a fully autonomous scientific discovery agent. It does not independently run laboratory experiments, guarantee factual correctness, retrieve all full-text papers or train its own foundation model. The next major development stage can add a permissioned document knowledge base with retrieval-augmented generation (RAG), citation verification, richer experimental-design tools, domain-specific datasets and role-based collaboration.
 
-## 10. Troubleshooting
+## 10. Cloudflare deployment\n\nThe repository includes a Cloudflare Workers + Containers deployment configuration for `https://sfw.wfw.co.ke`. It runs the Streamlit app in a Python container and uses Cloudflare R2 for persistent project storage. See [CLOUDFLARE_DEPLOY.md](CLOUDFLARE_DEPLOY.md) for the required Cloudflare account setup, R2 credentials, Workers Builds connection and verification steps. Cloudflare Containers require a Workers Paid plan; container usage and AI-provider usage may add charges.\n\n## 11. Troubleshooting
 
 - **`streamlit` not found:** activate `.venv` and run `pip install -r requirements.txt`.
 - **Python environment error:** use a virtual environment; do not install packages into an OS-managed Python environment.
