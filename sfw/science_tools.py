@@ -35,7 +35,7 @@ class CalculationError(ValueError):
 def _evaluate(node):
     if isinstance(node, ast.Expression):
         return _evaluate(node.body)
-    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+    if isinstance(node, ast.Constant) and type(node.value) in (int, float):
         return node.value
     if isinstance(node, ast.Name) and node.id in _CONSTANTS:
         return _CONSTANTS[node.id]
@@ -93,7 +93,10 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> dict:
     if from_unit in ("C", "F", "K") and to_unit in ("C", "F", "K"):
         to_c = {"C": lambda x: x, "F": lambda x: (x - 32) * 5 / 9, "K": lambda x: x - 273.15}
         from_c = {"C": lambda x: x, "F": lambda x: x * 9 / 5 + 32, "K": lambda x: x + 273.15}
-        result = from_c[to_unit](to_c[from_unit](number))
+        celsius = to_c[from_unit](number)
+        if celsius < -273.15:
+            raise CalculationError("Temperature cannot be below absolute zero (-273.15 °C).")
+        result = from_c[to_unit](celsius)
         return {"value": number, "from_unit": from_unit, "to_unit": to_unit, "result": result}
     for dimension, units in _UNIT_GROUPS.items():
         if units and from_unit in units and to_unit in units:
