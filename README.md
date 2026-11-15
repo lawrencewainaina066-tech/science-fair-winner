@@ -1,42 +1,35 @@
-# Science Fair Winner (SFW) — Complete Build System
+# Science Fair Winner (SFW)
 
-**Version:** 1.0.0  
-**Purpose:** Scientific intelligence and problem-solving workspace for students, science-fair participants and researchers.
+**Version:** 1.1.0  
+**Purpose:** A multidisciplinary scientific research and problem-solving workspace for students, science-fair participants and independent researchers.
 
-SFW is a runnable Python/Streamlit application. It combines research planning, optional model-powered scientific conversation, scholarly metadata discovery, data analysis, statistics, visualisation, project storage and report export.
+Science Fair Winner combines an optional AI science assistant with research planning, methodology design, scholarly metadata discovery, local scientific calculations, statistical analysis, visualisation, project storage and report export.
 
-> SFW is an application built around existing AI models and scientific tools. It is not a newly trained foundation model, and it does not claim to reproduce Claude's proprietary source code, private datasets or internal architecture.
+> SFW is an application that uses existing AI providers and scientific Python libraries. It is not a newly trained foundation model, an autonomous laboratory, or a guarantee of scientific correctness.
 
-## 1. Features
+## Features
 
-- AI Science Assistant: connect a Gemini, Anthropic or OpenAI API key; check provider configuration, run an optional API connection test, choose a scientific discipline, audience level and response mode, and use offline research-planning guidance without a key.
-- Source-grounded answers: optionally search Crossref for publication records and available abstracts, instruct the AI to cite only those retrieved records, and append DOI links generated from the actual metadata.
-- Research Project Planner: draft problem statements, aims, research questions, hypotheses, variables and method outlines.
-- Research Methodology Engine: draft methodology plans and flag mismatches between study design, objective, outcome type, sample size, groups and repeated measurements; recommendations are guidance, not statistical validation.
-- Literature Search: retrieve scholarly publication metadata from Crossref.
-- Data Analysis Lab: import CSV/Excel, inspect missing values, calculate descriptive statistics, explore distributions and correlations, run linear regression and selected t-tests.
-- Project Library: save and reopen plans locally.
-- Report Builder: export project plans as DOCX or PDF.
-- Multidisciplinary scope: biology, chemistry, physics, environmental science, agriculture, mathematics, engineering and biomedical science.
-- Scientific integrity controls: distinguish plans from completed experiments; do not invent results or citations.
-- Scientific calculator and unit converter: perform safe local arithmetic, selected mathematical functions and metric/temperature conversions without an AI API.
+- **AI Science Assistant:** Gemini, Anthropic and OpenAI API integrations; provider diagnostics and connection test; discipline, audience-level and response-mode controls.
+- **Evidence-aware responses:** optional Crossref search with real publication metadata and available abstracts. Retrieved metadata is not full-text verification, and citation presence does not prove that a paper supports every sentence.
+- **Research Project Planner:** draft research problems, aims, questions, hypotheses, variables and method outlines.
+- **Research Methodology Engine:** structured methodology plans and checks for common mismatches in study design, objective, outcome, sample size, group structure and repeated measurements.
+- **Literature Search:** search Crossref and inspect available publication metadata and abstracts.
+- **Data Analysis Lab:** CSV/Excel import, data-quality checks, descriptive statistics, plots, correlations, linear regression, independent and paired t-tests, chi-square tests, confidence intervals and effect-size summaries.
+- **Scientific Calculator and Unit Converter:** safe arithmetic and selected mathematical functions, metric conversions and temperature conversions.
+- **Project Library:** save and reopen local project plans without silently overwriting a project with the same title.
+- **Report Builder:** export research plans as DOCX and PDF.
+- **RTX GPU connector:** read-only connection checks and image-list retrieval through a configured public HTTPS endpoint. GPU job submission is intentionally disabled until the server's authenticated submission API is documented and tested.
 
-## 2. Requirements
+## Requirements
 
-- Windows 10/11, macOS or Linux
 - Python 3.10 or newer (Python 3.11 recommended)
-- Internet connection for package installation, Crossref search and external AI APIs
-- An API key is optional; SFW's planning and data-analysis modules work without one
+- Windows, macOS or Linux
+- Internet access for package installation, Crossref and external AI providers
+- AI API key optional; planning, local calculations and data analysis work without one
 
-## 3. Windows installation
+## Run locally
 
-1. Extract the ZIP file.
-2. Open the extracted `Science_Fair_Winner` folder.
-3. Double-click `scripts/run_windows.bat`.
-4. The script creates a virtual environment, installs dependencies and starts Streamlit.
-5. Open the local URL shown in the terminal (usually `http://localhost:8501`).
-
-If Windows blocks the script, open PowerShell in the project folder and run:
+### Windows PowerShell
 
 ```powershell
 py -m venv .venv
@@ -46,117 +39,125 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## 4. Linux installation
-
-From the project directory:
+### Linux / macOS
 
 ```bash
-chmod +x scripts/run_linux.sh
-./scripts/run_linux.sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-If your Linux distribution does not have venv support, install its Python venv package first (for Ubuntu/Debian: `sudo apt install python3-venv`).
+Open the local URL printed by Streamlit, normally http://localhost:8501.
 
-## 5. Optional AI configuration
+## Deploy to Streamlit Community Cloud
 
-Copy `.env.example` to `.env` and configure one provider.
+1. Push this repository to GitHub.
+2. In Streamlit Community Cloud, create an app connected to this repository.
+3. Select branch main and entry point app.py.
+4. Add the chosen AI provider settings under the app's Settings → Secrets.
+5. Deploy and open AI Science Assistant → AI connection & configuration → Test AI connection.
+
+Streamlit Cloud installs packages from requirements.txt. Do not commit .env, .streamlit/secrets.toml, API keys or access tokens.
+
+### Important: project persistence
+
+The Project Library currently writes JSON files to the app's local data/projects/ directory. This is suitable for local development, but the filesystem of a hosted app should not be treated as durable storage across rebuilds, restarts or redeployments. Back up local projects. For reliable multi-user cloud storage, SFW still needs a configured persistent database or object-storage service and user access controls.
+
+## Optional AI provider setup
+
+Configure one provider. The model identifiers below are defaults and can be overridden for a model enabled on your provider account.
 
 ### Google Gemini
 
-```env
-SFW_AI_PROVIDER=gemini
-GEMINI_API_KEY=your_google_ai_studio_key
-GEMINI_MODEL=gemini-3.5-flash-lite
+```toml
+SFW_AI_PROVIDER = "gemini"
+GEMINI_API_KEY = "your_google_ai_studio_key"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 ```
-
-Check Google AI Studio for current model availability, free-tier limits and data-handling terms.
 
 ### Anthropic
 
-```env
-SFW_AI_PROVIDER=anthropic
-ANTHROPIC_API_KEY=your_api_key
-ANTHROPIC_MODEL=claude-3-5-sonnet-latest
+```toml
+SFW_AI_PROVIDER = "anthropic"
+ANTHROPIC_API_KEY = "your_anthropic_api_key"
+ANTHROPIC_MODEL = "claude-sonnet-5-5"
 ```
 
 ### OpenAI
 
-```env
-SFW_AI_PROVIDER=openai
-OPENAI_API_KEY=your_api_key
-OPENAI_MODEL=gpt-4.1-mini
+```toml
+SFW_AI_PROVIDER = "openai"
+OPENAI_API_KEY = "your_openai_api_key"
+OPENAI_MODEL = "gpt-6-luna"
 ```
 
-Restart the app after changing `.env`. Keep `.env` private; never commit API keys to GitHub. API use may incur charges under the provider's terms.
+The app sends questions and recent conversation history to the selected provider. The optional Crossref mode also sends retrieved publication metadata/abstracts as context. Review each provider's current pricing, rate limits, retention and data-use terms before submitting private research material. The connection test makes a real API request and may consume quota.
 
-## 6. Project structure
+## Optional RTX GPU service
 
-```text
-Science_Fair_Winner/
-├── app.py
-├── requirements.txt
-├── README.md
-├── .env.example
-├── scripts/
-│   ├── run_windows.bat
-│   └── run_linux.sh
-├── sfw/
-│   ├── assistant.py
-│   ├── analysis.py
-│   ├── config.py
-│   ├── literature.py
-│   ├── planner.py
-│   ├── reporting.py
-│   └── storage.py
-├── data/
-│   ├── knowledge/
-│   │   └── disciplines.json
-│   └── projects/
-├── outputs/
-├── assets/
-│   └── SFW_Project_Poster.png
-├── tests/
-│   └── test_core.py
-├── examples_hookes_law_illustrative.csv
-└── reference_archives/
-    ├── Science_Fair_Winner_Complete_original.zip
-    └── SFW_Multidiscipline_Data_Kit_original.zip
+The RTX connector is designed for a separate GPU host exposed through a public HTTPS endpoint, for example https://rtx.wfw.co.ke. Configure:
+
+```toml
+SFW_RTX_BASE_URL = "https://your-rtx-host.example"
+# Only if the RTX API administrator has enabled Bearer authentication:
+SFW_RTX_API_TOKEN = "your_token"
 ```
 
-The large poster image and original ZIP archives are not included in this GitHub source upload. They remain available in the separate complete build package.
+The hosted connector rejects plain HTTP, local/private network destinations and unsafe redirects. It currently reads only the documented queue homepage and /images endpoint. It does not submit, cancel or modify GPU jobs. Do not expose the RTX API publicly without authentication, access controls and rate limiting.
 
-## 7. AI assistant setup and testing\n\nIn the AI Science Assistant, expand **AI connection & configuration** to see whether the selected provider, model and API key are configured. **Test AI connection** sends a short request to that provider and may consume a small amount of API quota. It does not reveal or display the API key. Choose the discipline, explanation level and response mode before asking a question.\n\n## 8. Run tests
+## Tests
+
+Run the automated test suite:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 pytest -q
 ```
 
-## 9. Data and scientific integrity
+GitHub Actions runs the same test suite on pushes and pull requests to main.
 
-- Literature search returns Crossref metadata and may include abstracts when supplied by Crossref. The optional source-grounded AI mode uses those records, but does not retrieve or verify full-text papers. Follow DOI/publisher links and verify the full text, methods and publication status.
-- AI-generated explanations can still contain errors. Retrieved citations establish that a Crossref record exists; they do not prove that every statement in an answer is supported by that paper.
-- A statistically significant p-value is not proof of causation or practical importance.
-- Select statistical tests based on the research design, sample structure and assumptions.
-- Do not enter invented measurements as if they were observed data.
-- Record units, instrument details, dates, replicates and missing-data decisions.
-- Obtain supervision and required ethical/safety approval for experiments involving people, animals, pathogens, hazardous chemicals or other risks.
-- Project files are stored locally in `data/projects/`. Back up this folder.
+## Project structure
 
-## 10. Current scope and next development stage
+```text
+app.py
+sfw/
+  assistant.py       # AI providers and scientific response prompts
+  analysis.py        # statistical analysis and validation
+  config.py          # environment and Streamlit Secrets
+  literature.py      # Crossref retrieval and reference formatting
+  methodology.py     # study design and methodology checks
+  planner.py         # research plan generation
+  reporting.py       # DOCX and PDF exports
+  rtx.py             # secure, read-only remote RTX client
+  science_tools.py   # local calculator and unit conversion
+  storage.py         # local project library
+tests/               # automated unit tests
+requirements.txt
+```
 
-This is a functional first release, not a fully autonomous scientific discovery agent. It does not independently run laboratory experiments, guarantee factual correctness, retrieve all full-text papers or train its own foundation model. The next major development stage can add a permissioned document knowledge base with retrieval-augmented generation (RAG), citation verification, richer experimental-design tools, domain-specific datasets and role-based collaboration.
+## Scientific integrity and limitations
 
-## 11. Cloudflare deployment\n\nThe repository includes a Cloudflare Workers + Containers deployment configuration for `https://sfw.wfw.co.ke`. It runs the Streamlit app in a Python container and uses Cloudflare R2 for persistent project storage. See [CLOUDFLARE_DEPLOY.md](CLOUDFLARE_DEPLOY.md) for the required Cloudflare account setup, R2 credentials, Workers Builds connection and verification steps. Cloudflare Containers require a Workers Paid plan; container usage and AI-provider usage may add charges.\n\n## 12. Troubleshooting
+- AI-generated content can be wrong. Verify important claims against primary literature and qualified experts.
+- Crossref results are publication metadata, not necessarily full text. Verify the publisher record, publication status, methods and findings before citing.
+- A reference returned by a search is not proof that the source supports a particular claim.
+- Statistical tests depend on sampling, independence, measurement quality, assumptions and study design. A p-value is not an effect size and does not prove causation.
+- Confidence intervals and effect sizes are descriptive inferential summaries; they do not repair biased sampling, confounding or poor experimental design.
+- Do not represent simulated or illustrative values as observed measurements.
+- Obtain required supervision, ethics approval and safety review for work involving people, animals, pathogens, hazardous chemicals or other risks.
+- The methodology engine flags common issues; it does not calculate a defensible sample size or certify a protocol.
+- The RTX integration is read-only until the remote server's job-submission contract and authentication are confirmed.
+- Cloud project persistence, user accounts, role-based access and collaboration are not yet implemented.
 
-- **`streamlit` not found:** activate `.venv` and run `pip install -r requirements.txt`.
-- **Python environment error:** use a virtual environment; do not install packages into an OS-managed Python environment.
-- **Crossref search fails:** check internet access and retry later.
-- **AI assistant falls back to offline guidance:** check `.env`, provider name, API key, model availability and provider billing/access.
-- **Excel import fails:** ensure `openpyxl` installed and file is a valid `.xlsx` or `.xls`.
+## Security
+
+- Keep API keys and tokens in Streamlit Secrets or a private local .env file.
+- Never paste secrets into chat, screenshots, source code or public issue reports.
+- Do not expose the RTX service without HTTPS, authentication, network restrictions and monitoring.
+- Do not upload confidential, identifying or sensitive data unless you have permission and have checked provider data-handling terms.
 
 ---
 
 **Science Fair Winner (SFW)**  
-Prepared for Lawrence Wainaina  
-Build release 1.0.0
+Build release 1.1.0
