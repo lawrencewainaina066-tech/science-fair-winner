@@ -20,10 +20,14 @@ class RTXError(RuntimeError):
 
 def _validate_base_url(base_url: str) -> str:
     value = str(base_url or "").strip()
-    parsed = urlparse(value)
+    try:
+        parsed = urlparse(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise RTXError("RTX base URL is malformed.") from exc
     if parsed.scheme != "https" or not parsed.hostname:
         raise RTXError("RTX base URL must be a valid HTTPS URL.")
-    if parsed.username or parsed.password or parsed.port not in (None, 443):
+    if parsed.username or parsed.password or port not in (None, 443):
         raise RTXError("RTX URL credentials and non-standard ports are not allowed.")
     hostname = parsed.hostname.rstrip(".").lower()
     if hostname in ("localhost",) or hostname.endswith((".localhost", ".local")):
