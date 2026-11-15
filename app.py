@@ -25,7 +25,7 @@ with st.sidebar:
         "Literature Search", "Data Analysis Lab", "Project Library", "RTX GPU Server", "About & Settings"
     ])
     st.divider()
-    st.caption("SFW v1.0.0 • Local-first scientific workspace")
+    st.caption("SFW v1.1.0 • Scientific research workspace")
 
 if "chat" not in st.session_state:
     st.session_state.chat = []
@@ -492,6 +492,9 @@ elif page == "About & Settings":
     st.caption("Add only one provider configuration to Streamlit Secrets. Model availability, pricing, quotas and data handling depend on the provider and your account. The assistant's Test AI connection button sends a short API request that may consume quota. Never commit API keys to GitHub or share them in screenshots.")
     st.markdown("#### Data and privacy")
     st.write("Projects are saved locally under data/projects. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
+    st.warning("Hosted-storage notice: Streamlit Cloud's local filesystem is not durable storage. Project Library files may be lost during a rebuild, restart or redeployment. Keep backups; persistent cloud storage and user accounts are not yet configured.")
+    st.markdown("#### Configure the remote RTX service")
+    st.write("Add SFW_RTX_BASE_URL in Streamlit Secrets using your public HTTPS tunnel hostname. Add SFW_RTX_API_TOKEN only if the RTX administrator has configured Bearer-token authentication. The connector is read-only and blocks local/private network destinations.")
     st.markdown("#### Current limitations")
     st.write("- The AI assistant depends on an external API when enabled; SFW is not itself a trained foundation model.\n- Literature search retrieves Crossref metadata, not necessarily full-text papers.\n- Statistical results depend on data quality, study design and test assumptions.\n- Experimental safety and ethical approval remain the responsibility of the researcher and supervising institution.")
     st.markdown("#### Included original materials")
