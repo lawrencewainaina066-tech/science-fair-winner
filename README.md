@@ -9,7 +9,8 @@ SFW is a runnable Python/Streamlit application. It combines research planning, o
 
 ## 1. Features
 
-- AI Science Assistant: connect an authorised Anthropic or OpenAI API key; offline research-planning guidance remains available without a key.
+- AI Science Assistant: connect a Gemini, Anthropic or OpenAI API key; offline research-planning guidance remains available without a key.
+- Source-grounded answers: optionally search Crossref for publication records and available abstracts, instruct the AI to cite only those retrieved records, and append DOI links generated from the actual metadata.
 - Research Project Planner: draft problem statements, aims, research questions, hypotheses, variables and method outlines.
 - Literature Search: retrieve scholarly publication metadata from Crossref.
 - Data Analysis Lab: import CSV/Excel, inspect missing values, calculate descriptive statistics, explore distributions and correlations, run linear regression and selected t-tests.
@@ -57,6 +58,16 @@ If your Linux distribution does not have venv support, install its Python venv p
 ## 5. Optional AI configuration
 
 Copy `.env.example` to `.env` and configure one provider.
+
+### Google Gemini
+
+```env
+SFW_AI_PROVIDER=gemini
+GEMINI_API_KEY=your_google_ai_studio_key
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+Check Google AI Studio for current model availability, free-tier limits and data-handling terms.
 
 ### Anthropic
 
@@ -121,7 +132,8 @@ pytest -q
 
 ## 8. Data and scientific integrity
 
-- Literature search returns metadata. Follow DOI/publisher links and verify the full text, methods and publication status.
+- Literature search returns Crossref metadata and may include abstracts when supplied by Crossref. The optional source-grounded AI mode uses those records, but does not retrieve or verify full-text papers. Follow DOI/publisher links and verify the full text, methods and publication status.
+- AI-generated explanations can still contain errors. Retrieved citations establish that a Crossref record exists; they do not prove that every statement in an answer is supported by that paper.
 - A statistically significant p-value is not proof of causation or practical importance.
 - Select statistical tests based on the research design, sample structure and assumptions.
 - Do not enter invented measurements as if they were observed data.
