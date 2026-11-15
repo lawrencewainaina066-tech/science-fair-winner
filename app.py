@@ -461,19 +461,17 @@ elif page == "RTX GPU Server":
         placeholder="https://rtx.wfw.co.ke",
         help="Use the HTTPS URL provided after the Cloudflare Tunnel is configured. Do not enter the private Tailscale IP here for Streamlit Cloud.",
     )
-    api_token = st.text_input(
-        "RTX API token (optional)",
-        value=_setting("SFW_RTX_API_TOKEN"),
-        type="password",
-        help="Only enter a token if the RTX API administrator has configured Bearer-token authentication. Store it in Streamlit Secrets for deployment.",
-    )
+    api_token = _setting("SFW_RTX_API_TOKEN")
+    access_client_id = _setting("SFW_RTX_ACCESS_CLIENT_ID")
+    access_client_secret = _setting("SFW_RTX_ACCESS_CLIENT_SECRET")
+    st.caption("RTX authentication is read from Streamlit Secrets. Cloudflare Access service tokens use a client ID and client secret; an optional backend Bearer token is supported separately.")
     if st.button("Test RTX connection", type="primary"):
         if not base_url.strip():
             st.warning("Enter the HTTPS RTX service URL first.")
         else:
             with st.spinner("Checking the queue and documented images endpoint..."):
                 try:
-                    report = check_rtx(base_url, api_token)
+                    report = check_rtx(base_url, api_token, access_client_id=access_client_id, access_client_secret=access_client_secret)
                     for check in report["checks"]:
                         if check["ok"]:
                             st.success(f"{check['name']}: HTTP {check['status']} — {check['detail']}")
@@ -489,11 +487,11 @@ elif page == "RTX GPU Server":
             st.warning("Enter the HTTPS RTX service URL first.")
         else:
             try:
-                images = list_images(base_url, api_token, owner="Lawrence", limit=20)
+                images = list_images(base_url, api_token, owner="Lawrence", limit=20, access_client_id=access_client_id, access_client_secret=access_client_secret)
                 st.json(images)
             except RTXError as exc:
                 st.error(str(exc))
-    st.info("Deployment secrets: SFW_RTX_BASE_URL = \"https://rtx.wfw.co.ke\" and, only if configured by the server administrator, SFW_RTX_API_TOKEN = \"your-token\". Never commit real tokens to GitHub.")
+    st.info("Deployment secrets: SFW_RTX_BASE_URL = \"https://rtx.wfw.co.ke\". For Cloudflare Access, set SFW_RTX_ACCESS_CLIENT_ID and SFW_RTX_ACCESS_CLIENT_SECRET. Set SFW_RTX_API_TOKEN only if the backend also requires Bearer authentication. Never commit real secrets to GitHub.")
 
 elif page == "About & Settings":
     st.subheader("About SFW")
