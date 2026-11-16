@@ -98,10 +98,16 @@ def _record_from_crossref(item):
     }
 
 
+def _term_matches(text, terms):
+    """Match whole words/phrases to avoid false positives such as 'niger' in 'Nigeria'."""
+    normalized = re.sub(r"[^a-z0-9]+", " ", str(text or "").lower())
+    padded = " " + re.sub(r"\\s+", " ", normalized).strip() + " "
+    return [term for term in terms if " " + term.lower() + " " in padded]
+
+
 def _africa_signal(record):
-    text = " ".join(str(record.get(k) or "") for k in ("title", "abstract", "affiliations", "journal")).lower()
-    hits = [term for term in AFRICA_TERMS if term in text]
-    return hits
+    text = " ".join(str(record.get(k) or "") for k in ("title", "abstract", "affiliations", "journal"))
+    return _term_matches(text, AFRICA_TERMS)
 
 
 def _topic_score(record, query):
@@ -220,8 +226,8 @@ def search_crossref(query, rows=8, start_year=None, end_year=None,
         seen.add(identity)
         title_abstract = " ".join(str(record.get(k) or "") for k in ("title", "abstract")).lower()
         affiliation_journal = " ".join(str(record.get(k) or "") for k in ("affiliations", "journal")).lower()
-        record["africa_study_text_matches"] = [term for term in AFRICA_TERMS if term in title_abstract]
-        record["africa_affiliation_matches"] = [term for term in AFRICA_TERMS if term in affiliation_journal]
+        record["africa_study_text_matches"] = _term_matches(title_abstract, AFRICA_TERMS)
+        record["africa_affiliation_matches"] = _term_matches(affiliation_journal, AFRICA_TERMS)
         record["africa_matches"] = list(dict.fromkeys(record["africa_study_text_matches"] + record["africa_affiliation_matches"]))
         record["africa_relevance"] = bool(record["africa_matches"])
         record["topic_score"] = _topic_score(record, query)
