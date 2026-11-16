@@ -145,3 +145,22 @@ def test_topic_sort_can_rank_international_topic_match_first(monkeypatch):
         crop_filter="Exact crop match only", sort_by="Topic relevance"
     )
     assert result[0]["doi"] == "10.1234/international"
+
+
+def test_preprints_are_excluded_by_default_and_can_be_included(monkeypatch):
+    monkeypatch.setattr(literature.requests, "get", lambda *args, **kwargs: FakeResponse({
+        "message": {"items": [
+            {"title": ["Maize nitrogen journal study"], "type": "journal-article", "DOI": "10.1234/journal"},
+            {"title": ["Maize nitrogen preprint"], "type": "posted-content", "DOI": "10.1234/preprint"},
+        ]}
+    }))
+    default_results = literature.search_crossref("maize nitrogen")
+    assert [item["doi"] for item in default_results] == ["10.1234/journal"]
+    all_results = literature.search_crossref("maize nitrogen", include_preprints=True)
+    assert {item["doi"] for item in all_results} == {"10.1234/journal", "10.1234/preprint"}
+
+
+def test_african_country_matching_uses_whole_words():
+    assert literature._term_matches("A study conducted in Nigeria", literature.AFRICA_TERMS) == ["nigeria"]
+    assert literature._term_matches("African crop production in Niger", literature.AFRICA_TERMS) == ["african", "niger"]
+    assert literature._term_matches("Nigerian authors at a university", literature.AFRICA_TERMS) == []
