@@ -394,7 +394,7 @@ elif page == "Literature Search":
             if item.get("africa_relevance"):
                 matches = ", ".join(item.get("africa_matches", [])[:5])
                 st.success(f"African relevance signal found: {matches}. Confirm the actual study location in the paper.")
-            elif africa_first:
+            elif sort_by == 'African relevance first':
                 st.caption("No clear African country or regional signal found in the available metadata.")
             abstract_text = str(item.get("abstract") or "").strip()
             if abstract_text:
