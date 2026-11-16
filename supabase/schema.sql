@@ -3,7 +3,7 @@
 
 create table if not exists public.sfw_projects (
     id uuid primary key default gen_random_uuid(),
-    user_id uuid not null references auth.users(id) on delete cascade,
+    user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
     title text not null check (char_length(title) between 1 and 200),
     payload jsonb not null,
     created_at timestamptz not null default now(),
