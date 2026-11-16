@@ -1,3 +1,5 @@
+import time
+
 import requests
 from .config import ai_settings
 
@@ -82,6 +84,48 @@ def _raise_provider_error(response, provider):
     raise RuntimeError(f"{provider} API error ({response.status_code}): {str(detail)[:700]}")
 
 
+def _post_with_retries(url, *, provider, timeout=(15, 60), **kwargs):
+    """Retry temporary provider/network failures without exposing credentials."""
+    retryable_statuses = {429, 500, 502, 503, 504}
+    max_attempts = 3
+    last_error = None
+
+    for attempt in range(max_attempts):
+        try:
+            response = requests.post(url, timeout=timeout, **kwargs)
+            if response.status_code not in retryable_statuses:
+                _raise_provider_error(response, provider)
+                return response
+            last_error = RuntimeError(
+                f"{provider} API temporarily unavailable (HTTP {response.status_code})."
+            )
+            retry_after = response.headers.get("Retry-After")
+            try:
+                delay = min(max(float(retry_after), 1.0), 8.0) if retry_after else 2 ** attempt
+            except (TypeError, ValueError):
+                delay = 2 ** attempt
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            last_error = exc
+            delay = 2 ** attempt
+        except requests.RequestException as exc:
+            raise RuntimeError(f"{provider} network request failed: {exc}") from exc
+
+        if attempt < max_attempts - 1:
+            time.sleep(delay)
+
+    if isinstance(last_error, RuntimeError):
+        raise RuntimeError(
+            f"{last_error} SFW retried {max_attempts} times. "
+            "This is usually temporary; wait a little and try again. "
+            "If it continues, check the provider's service status and usage limits."
+        ) from last_error
+    raise RuntimeError(
+        f"{provider} request could not complete after {max_attempts} attempts "
+        "because of a network timeout or connection failure. Check the connection "
+        "and try again shortly."
+    ) from last_error
+
+
 def _normalise_messages(messages):
     """Keep only valid conversational roles and text content."""
     if not isinstance(messages, list) or not messages:
@@ -151,11 +195,10 @@ def ask_ai(messages, research_sources=None):
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{cfg['gemini_model']}:generateContent"
         )
-        r = requests.post(
-            url, json=payload, timeout=90,
+        r = _post_with_retries(
+            url, provider="Gemini", json=payload,
             headers={"x-goog-api-key": cfg["gemini_key"], "Content-Type": "application/json"}
         )
-        _raise_provider_error(r, "Gemini")
         data = r.json()
         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
         answer = "\n".join(part.get("text", "") for part in parts if part.get("text")).strip()
@@ -170,12 +213,11 @@ def ask_ai(messages, research_sources=None):
             "system": system_prompt,
             "messages": clean_messages
         }
-        r = requests.post(
-            "https://api.anthropic.com/v1/messages", json=payload, timeout=90,
+        r = _post_with_retries(
+            "https://api.anthropic.com/v1/messages", provider="Anthropic", json=payload,
             headers={"x-api-key": cfg["anthropic_key"], "anthropic-version": "2023-06-01",
                      "content-type": "application/json"}
         )
-        _raise_provider_error(r, "Anthropic")
         answer = "\n".join(
             item.get("text", "") for item in r.json().get("content", [])
             if item.get("type") == "text"
@@ -191,11 +233,10 @@ def ask_ai(messages, research_sources=None):
             "input": clean_messages,
             "max_output_tokens": 1800,
         }
-        r = requests.post(
-            "https://api.openai.com/v1/responses", json=payload, timeout=90,
+        r = _post_with_retries(
+            "https://api.openai.com/v1/responses", provider="OpenAI", json=payload,
             headers={"Authorization": f"Bearer {cfg['openai_key']}", "Content-Type": "application/json"}
         )
-        _raise_provider_error(r, "OpenAI")
         data = r.json()
         answer = (data.get("output_text") or "").strip()
         if not answer:
