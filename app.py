@@ -352,9 +352,9 @@ elif page == "Literature Search":
             help="African relevance first ranks geographic signals before topic score. Topic relevance ranks subject match first."
         )
     article_only = st.checkbox(
-        "Research publications only (exclude tables, reviews and other components)",
+        "Research publication records only (exclude non-publication components)",
         value=True,
-        help="Keeps journal articles, conference papers and book chapters; excludes peer-review records and component records such as standalone tables."
+        help="Keeps journal articles, conference papers and book chapters; excludes non-publication components. Review articles may still appear as journal articles and should be screened by title and abstract."
     )
     include_preprints = st.checkbox(
         "Include preprints and working papers",
