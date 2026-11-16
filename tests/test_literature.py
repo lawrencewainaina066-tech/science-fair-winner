@@ -47,6 +47,7 @@ def test_crossref_parses_year_fallback_and_cleans_abstract(monkeypatch):
     monkeypatch.setattr(literature.requests, "get", lambda *args, **kwargs: FakeResponse({
         "message": {"items": [{
             "title": ["A maize study"],
+            "type": "journal-article",
             "author": [{"given": "Ada", "family": "Example"}],
             "published-online": {"date-parts": [[2024, 3, 1]]},
             "container-title": ["Journal of Examples"],
