@@ -336,21 +336,19 @@ elif page == "Literature Search":
         end_year = st.number_input("To year", min_value=1900, max_value=2100, value=2026, step=1)
     with filter_cols[2]:
         count = st.slider("Maximum records", 3, 20, 10)
-    option_cols = st.columns(3)
+    option_cols = st.columns(2)
     with option_cols[0]:
-        africa_first = st.checkbox("Prioritise African studies", value=True)
-    with option_cols[1]:
         crop_filter = st.selectbox(
             "Crop relevance filter",
             ["Exact crop match only", "Related crops included", "All relevant agricultural studies"],
             index=1,
             help="Exact match keeps records naming the crop in the title or abstract. Related crops includes other major crops when a cereal is searched."
         )
-    with option_cols[2]:
+    with option_cols[1]:
         sort_by = st.selectbox(
             "Sort results by",
             ["African relevance first", "Topic relevance"],
-            index=0 if africa_first else 1,
+            index=0,
             help="African relevance first ranks geographic signals before topic score. Topic relevance ranks subject match first."
         )
     article_only = st.checkbox(
@@ -369,7 +367,7 @@ elif page == "Literature Search":
             try:
                 results = search_crossref(
                     query, count, start_year=int(start_year), end_year=int(end_year),
-                    africa_first=africa_first, article_only=article_only,
+                    africa_first=(sort_by == 'African relevance first'), article_only=article_only,
                     crop_filter=crop_filter, sort_by=sort_by
                 )
                 st.session_state.literature_results = results
