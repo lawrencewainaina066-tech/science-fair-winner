@@ -14,8 +14,7 @@ class FakeResponse:
 
 
 def test_supabase_config_requires_https(monkeypatch):
-    monkeypatch.setattr(cloud_storage, "_settings", lambda: ("http://example.com", "anon"))
-    # Exercise URL validation by replacing config source.
+    # Patch the setting source so the real URL validation is exercised.
     from sfw import config
     monkeypatch.setattr(config, "_setting", lambda name: {
         "SFW_SUPABASE_URL": "http://example.com",
