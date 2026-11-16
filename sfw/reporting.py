@@ -26,6 +26,16 @@ def build_docx(project):
         doc.add_heading("Variables", level=2)
         for k, v in variables.items():
             doc.add_paragraph(f"{k.title()}: {v}", style="List Bullet")
+    for key, label in [("study_design", "Study design")]:
+        if project.get(key):
+            doc.add_heading(label, level=2)
+            doc.add_paragraph(str(project[key]))
+    for key, label in [("specific_objectives", "Specific objectives"), ("treatment_structure", "Treatment structure"), ("quality_checks", "Scientific quality and safety checks"), ("warnings", "Design warnings to resolve")]:
+        items = project.get(key, [])
+        if items:
+            doc.add_heading(label, level=2)
+            for item in items:
+                doc.add_paragraph(str(item), style="List Bullet")
     methods = project.get("method_outline", [])
     if methods:
         doc.add_heading("Proposed method outline", level=2)
@@ -60,6 +70,14 @@ def build_pdf(project):
         story.append(Paragraph("Variables", styles["Heading2"]))
         for k, v in variables.items():
             story.append(Paragraph(f"<b>{escape(k.title())}:</b> {escape(str(v))}", styles["BodyText"]))
+    if project.get("study_design"):
+        story += [Paragraph("Study design", styles["Heading2"]), Paragraph(escape(str(project["study_design"])), styles["BodyText"])]
+    for key, label in [("specific_objectives", "Specific objectives"), ("treatment_structure", "Treatment structure"), ("quality_checks", "Scientific quality and safety checks"), ("warnings", "Design warnings to resolve")]:
+        items = project.get(key, [])
+        if items:
+            story.append(Paragraph(label, styles["Heading2"]))
+            for item in items:
+                story.append(Paragraph("• " + escape(str(item)), styles["BodyText"]))
     methods = project.get("method_outline", [])
     if methods:
         story.append(Paragraph("Proposed method outline", styles["Heading2"]))
