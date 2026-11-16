@@ -16,7 +16,7 @@ Science Fair Winner combines an optional AI science assistant with research plan
 - **Literature Search:** search Crossref and inspect available publication metadata and abstracts.
 - **Data Analysis Lab:** CSV/Excel import, data-quality checks, descriptive statistics, plots, correlations, linear regression, independent and paired t-tests, chi-square tests, confidence intervals and effect-size summaries.
 - **Scientific Calculator and Unit Converter:** safe arithmetic and selected mathematical functions, metric conversions and temperature conversions.
-- **Project Library:** opt-in local/shared project storage; shared saving is disabled by default on hosted deployments without user authentication, and duplicate titles do not silently overwrite earlier files.
+- **Project Library:** authenticated Supabase cloud storage with per-user row-level security, plus optional local/shared storage for trusted deployments.
 - **Report Builder:** export research plans as DOCX and PDF.
 - **RTX GPU connector:** read-only connection checks and image-list retrieval through a configured public HTTPS endpoint. GPU job submission is intentionally disabled until the server's authenticated submission API is documented and tested.
 
@@ -61,7 +61,25 @@ Open the local URL printed by Streamlit, normally http://localhost:8501.
 
 Streamlit Cloud installs packages from requirements.txt. Do not commit .env, .streamlit/secrets.toml, API keys or access tokens.
 
-### Important: project persistence
+### Private cloud project storage (Supabase)
+
+SFW supports email/password accounts and a private project library using Supabase Auth, Postgres and row-level security (RLS).
+
+1. Create a Supabase project.
+2. Open the Supabase SQL Editor and run the complete script in `supabase/schema.sql`.
+3. In Streamlit Cloud → Manage app → Settings → Secrets, add:
+
+```toml
+SFW_SUPABASE_URL = "https://your-project.supabase.co"
+SFW_SUPABASE_ANON_KEY = "your_supabase_anon_or_publishable_key"
+```
+
+4. Redeploy/restart the app, open Project Library, and create an account or sign in.
+5. Generate a research plan and select **Save to my private library**.
+
+Use only the Supabase anon/public key in Streamlit. Never add the Supabase `service_role` key to the app, repository, browser or chat. RLS policies in `supabase/schema.sql` enforce that each authenticated account can read, create, update or delete only its own projects. Configure email confirmation and password policies in Supabase Auth before inviting users. The user session is held in Streamlit session state; an expired session may require signing in again.
+
+## Important: project persistence
 
 The Project Library writes JSON files to the app's local data/projects/ directory. Shared-library mode is disabled by default because SFW does not yet have sign-in or private per-user storage; enabling it could expose saved plans to other app visitors. Set SFW_ENABLE_SHARED_PROJECT_LIBRARY=true only for a private, trusted, single-user deployment. The filesystem of a hosted app should not be treated as durable storage across rebuilds, restarts or redeployments. Back up local projects. Reliable multi-user cloud storage still requires a persistent database/object store and user access controls.
 
@@ -151,7 +169,7 @@ requirements.txt
 - Obtain required supervision, ethics approval and safety review for work involving people, animals, pathogens, hazardous chemicals or other risks.
 - The methodology engine flags common issues; it does not calculate a defensible sample size or certify a protocol.
 - The RTX integration is read-only until the remote server's job-submission contract and authentication are confirmed.
-- Durable cloud project persistence, user accounts, role-based access and collaboration are not yet implemented. Shared project saving is disabled by default on the app.
+- Supabase private project storage is optional and must be configured by the app owner using the SQL schema and Streamlit Secrets. It currently provides account-level project isolation, not team collaboration or institutional roles.
 
 ## Security
 
