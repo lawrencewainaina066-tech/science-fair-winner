@@ -354,9 +354,14 @@ elif page == "Literature Search":
     article_only = st.checkbox(
         "Research publications only (exclude tables, reviews and other components)",
         value=True,
-        help="Keeps journal articles, conference papers, preprints and book chapters; excludes peer-review records and component records such as standalone tables."
+        help="Keeps journal articles, conference papers and book chapters; excludes peer-review records and component records such as standalone tables."
     )
-    st.caption("African relevance uses country and regional terms in available metadata; it does not prove the study location. Topic scores are screening aids, not measures of study quality.")
+    include_preprints = st.checkbox(
+        "Include preprints and working papers",
+        value=False,
+        help="Off by default: excludes Crossref records classified as posted-content. Journal article peer-review status is not independently verified."
+    )
+    st.caption("Geographic mentions in titles/abstracts are shown separately from author-affiliation or journal signals. Neither proves the study location. Topic scores are screening aids, not measures of study quality.")
     if st.button("Search publications", type="primary"):
         st.session_state.literature_results = []
         if not query.strip():
@@ -368,7 +373,8 @@ elif page == "Literature Search":
                 results = search_crossref(
                     query, count, start_year=int(start_year), end_year=int(end_year),
                     africa_first=(sort_by == 'African relevance first'), article_only=article_only,
-                    crop_filter=crop_filter, sort_by=sort_by
+                    crop_filter=crop_filter, sort_by=sort_by,
+                    include_preprints=include_preprints
                 )
                 st.session_state.literature_results = results
                 if not results:
@@ -391,11 +397,16 @@ elif page == "Literature Search":
             st.caption(f"Topic relevance score: {item.get('topic_score', 0)} (higher scores indicate a closer metadata match, not scientific quality)")
             if item.get("year_discrepancy"):
                 st.warning("Crossref contains differing publication-date fields for this record: " + ", ".join(str(y) for y in item.get("year_values", [])) + ". Verify the publication year on the publisher page.")
-            if item.get("africa_relevance"):
-                matches = ", ".join(item.get("africa_matches", [])[:5])
-                st.success(f"African relevance signal found: {matches}. Confirm the actual study location in the paper.")
-            elif sort_by == 'African relevance first':
-                st.caption("No clear African country or regional signal found in the available metadata.")
+            study_matches = item.get("africa_study_text_matches", [])
+            affiliation_matches = item.get("africa_affiliation_matches", [])
+            if study_matches:
+                st.success("African geographic mention in title/abstract: " + ", ".join(study_matches[:5]) + ". Verify the actual study setting in the full paper.")
+            if affiliation_matches:
+                st.caption("African author-affiliation/journal signal: " + ", ".join(affiliation_matches[:5]) + ". This is not evidence of where the study was conducted.")
+            if not study_matches and not affiliation_matches and sort_by == "African relevance first":
+                st.caption("No African geographic or affiliation signal found in the available metadata.")
+            if item.get("type") == "posted-content":
+                st.warning("Preprint / working paper: publication and peer-review status must be checked before citing as a peer-reviewed study.")
             abstract_text = str(item.get("abstract") or "").strip()
             if abstract_text:
                 st.caption(f"Abstract available from Crossref ({len(abstract_text)} characters).")
