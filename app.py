@@ -26,7 +26,7 @@ with st.sidebar:
         "Literature Search", "Data Analysis Lab", "Project Library", "RTX GPU Server", "About & Settings"
     ])
     st.divider()
-    st.caption("SFW v1.1.0 • Scientific research workspace")
+    st.caption("SFW v1.2.0 • Scientific research workspace")
 
 if "chat" not in st.session_state:
     st.session_state.chat = []
@@ -200,11 +200,23 @@ elif page == "Research Project Planner":
         st.caption(p["integrity_note"])
         a, b, c = st.columns(3)
         with a:
-            if st.button("Save project", disabled=not shared_project_library_enabled):
+            cloud_ready = bool(_setting("SFW_SUPABASE_URL") and _setting("SFW_SUPABASE_ANON_KEY"))
+            has_cloud_session = bool(st.session_state.get("sfw_access_token"))
+            if cloud_ready:
+                if st.button("Save to my private library", disabled=not has_cloud_session, key="sfw_save_private_project"):
+                    try:
+                        from sfw.cloud_storage import save_project as save_cloud_project
+                        saved = save_cloud_project(st.session_state["sfw_access_token"], p["title"], p)
+                        st.success(f"Saved privately: {saved.get('title', p['title'])}")
+                    except Exception as exc:
+                        st.error(str(exc))
+                if not has_cloud_session:
+                    st.caption("Sign in from Project Library to save this plan privately.")
+            elif st.button("Save project", disabled=not shared_project_library_enabled):
                 path = save_project(p["title"], p)
                 st.success(f"Saved: {path.name}")
-        if not shared_project_library_enabled:
-            st.caption("Project saving is disabled by default because this deployment has no user accounts or private per-user storage. Download a copy, or enable shared storage only on a private single-user app.")
+        if not cloud_ready and not shared_project_library_enabled:
+            st.caption("Private cloud saving is not configured yet. Set up Supabase and sign in from Project Library, or download a copy.")
         with b:
             st.download_button("Download DOCX", build_docx(p), file_name="SFW_Research_Plan.docx")
         with c:
@@ -434,28 +446,113 @@ elif page == "Data Analysis Lab":
         st.info("Upload a dataset to begin. The sample Hooke's law dataset is available in the examples folder.")
 
 elif page == "Project Library":
-    st.subheader("Saved research projects")
-    if not shared_project_library_enabled:
-        st.warning("The shared Project Library is disabled. This app does not yet have sign-in or private per-user storage, so enabling a shared library could expose saved projects to other app visitors.")
-        st.info("Download your research plans as DOCX or PDF from the Research Project Planner. Enable SFW_ENABLE_SHARED_PROJECT_LIBRARY only on a private, trusted, single-user deployment.")
-    else:
-        st.warning("Shared-library mode is enabled. Every person who can access this app may be able to view and download saved projects. Do not store confidential or personal research data here.")
-        projects = list_projects()
-        if not projects:
-            st.info("No saved projects yet. Create one in Research Project Planner.")
-        for path in projects:
-            with st.expander(path.stem):
+    st.subheader("Private research project library")
+    supabase_url = _setting("SFW_SUPABASE_URL")
+    supabase_key = _setting("SFW_SUPABASE_ANON_KEY")
+    if supabase_url and supabase_key:
+        from sfw import cloud_storage
+
+        access_token = st.session_state.get("sfw_access_token")
+        if access_token:
+            account_email = st.session_state.get("sfw_account_email", "Signed-in account")
+            st.success(f"Signed in as {account_email}")
+            if st.button("Sign out", key="sfw_cloud_signout"):
                 try:
-                    p = read_project(path)
-                    st.write(p.get("problem_statement", ""))
-                    st.json(p)
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.download_button("Download DOCX", build_docx(p), file_name=f"{path.stem}.docx", key=f"docx_{path.stem}")
-                    with c2:
-                        st.download_button("Download PDF", build_pdf(p), file_name=f"{path.stem}.pdf", key=f"pdf_{path.stem}")
-                except Exception as e:
-                    st.error(f"Could not open project: {e}")
+                    cloud_storage.logout(access_token)
+                except Exception:
+                    pass
+                for key in ("sfw_access_token", "sfw_refresh_token", "sfw_account_email"):
+                    st.session_state.pop(key, None)
+                st.rerun()
+            try:
+                projects = cloud_storage.list_projects(access_token)
+                st.caption(f"{len(projects)} privately stored project(s). Access is restricted by Supabase row-level security.")
+                if not projects:
+                    st.info("Your private library is empty. Generate a plan and choose Save to my private library.")
+                for item in projects:
+                    project_id = item["id"]
+                    title = item.get("title") or "Untitled project"
+                    payload = item.get("payload") or {}
+                    with st.expander(title):
+                        st.write(payload.get("problem_statement", ""))
+                        st.json(payload)
+                        c1, c2, c3 = st.columns(3)
+                        with c1:
+                            st.download_button("Download DOCX", build_docx(payload), file_name="SFW_" + title[:80] + ".docx", key=f"cloud_docx_{project_id}")
+                        with c2:
+                            st.download_button("Download PDF", build_pdf(payload), file_name="SFW_" + title[:80] + ".pdf", key=f"cloud_pdf_{project_id}")
+                        with c3:
+                            if st.button("Delete project", key=f"cloud_delete_{project_id}"):
+                                try:
+                                    cloud_storage.delete_project(access_token, project_id)
+                                    st.success("Project deleted.")
+                                    st.rerun()
+                                except Exception as exc:
+                                    st.error(str(exc))
+            except Exception as exc:
+                st.error(str(exc))
+                st.caption("If your session expired, sign out and sign in again.")
+        else:
+            st.write("Create an account or sign in to keep your research plans private and available across sessions.")
+            sign_in_tab, sign_up_tab = st.tabs(["Sign in", "Create account"])
+            with sign_in_tab:
+                with st.form("sfw_signin_form"):
+                    email = st.text_input("Email address", key="sfw_signin_email")
+                    password = st.text_input("Password", type="password", key="sfw_signin_password")
+                    submitted = st.form_submit_button("Sign in", type="primary")
+                if submitted:
+                    try:
+                        session = cloud_storage.sign_in(email, password)
+                        st.session_state["sfw_access_token"] = session["access_token"]
+                        st.session_state["sfw_refresh_token"] = session.get("refresh_token")
+                        st.session_state["sfw_account_email"] = email.strip()
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(str(exc))
+            with sign_up_tab:
+                with st.form("sfw_signup_form"):
+                    new_email = st.text_input("Email address", key="sfw_signup_email")
+                    new_password = st.text_input("Password (at least 8 characters)", type="password", key="sfw_signup_password")
+                    confirm_password = st.text_input("Confirm password", type="password", key="sfw_signup_confirm")
+                    create_account = st.form_submit_button("Create account")
+                if create_account:
+                    if new_password != confirm_password:
+                        st.error("The passwords do not match.")
+                    elif len(new_password) < 8:
+                        st.error("Use a password with at least 8 characters.")
+                    else:
+                        try:
+                            result = cloud_storage.sign_up(new_email, new_password)
+                            if isinstance(result, dict) and result.get("access_token"):
+                                st.session_state["sfw_access_token"] = result["access_token"]
+                                st.session_state["sfw_refresh_token"] = result.get("refresh_token")
+                                st.session_state["sfw_account_email"] = new_email.strip()
+                                st.success("Account created and signed in.")
+                                st.rerun()
+                            st.success("Account created. Check your email for the confirmation link, then return here and sign in.")
+                        except Exception as exc:
+                            st.error(str(exc))
+    else:
+        st.warning("Private cloud storage is not configured. SFW will not expose a shared project library as a substitute.")
+        st.info("Set up a Supabase project, run the SQL in supabase/schema.sql, then add SFW_SUPABASE_URL and SFW_SUPABASE_ANON_KEY to Streamlit Secrets.")
+        if shared_project_library_enabled:
+            st.warning("Legacy shared-library mode is enabled. Everyone with app access may see those projects.")
+            projects = list_projects()
+            if not projects:
+                st.info("No saved projects yet.")
+            for path in projects:
+                with st.expander(path.stem):
+                    try:
+                        p = read_project(path)
+                        st.write(p.get("problem_statement", ""))
+                        st.json(p)
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.download_button("Download DOCX", build_docx(p), file_name=f"{path.stem}.docx", key=f"docx_{path.stem}")
+                        with c2:
+                            st.download_button("Download PDF", build_pdf(p), file_name=f"{path.stem}.pdf", key=f"pdf_{path.stem}")
+                    except Exception as exc:
+                        st.error(f"Could not open project: {exc}")
 
 elif page == "RTX GPU Server":
     st.subheader("Remote RTX GPU server")
@@ -505,6 +602,9 @@ elif page == "RTX GPU Server":
 elif page == "About & Settings":
     st.subheader("About SFW")
     st.write("Science Fair Winner is a modular scientific research-support platform. It combines a conversational AI connection (optional), research planning, scholarly metadata search, data analysis and report generation.")
+    st.markdown("#### Private project storage")
+    st.write("SFW supports Supabase email/password accounts with per-user database access policies. Run supabase/schema.sql in your Supabase SQL Editor, then add the project URL and anon/public key to Streamlit Secrets. Never use the service_role key in this app.")
+    st.code('SFW_SUPABASE_URL = "https://your-project.supabase.co"\\nSFW_SUPABASE_ANON_KEY = "your_supabase_anon_key"', language="toml")
     st.markdown("#### Configure an AI provider")
     st.write("For Streamlit Community Cloud, add these values in Manage app → Settings → Secrets. For local development, place the same values in .streamlit/secrets.toml or a private .env file.")
     provider_tabs = st.tabs(["Google Gemini", "Anthropic", "OpenAI"])
