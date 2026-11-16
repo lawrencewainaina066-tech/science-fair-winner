@@ -7,6 +7,18 @@ import requests
 
 CROSSREF = "https://api.crossref.org/works"
 
+AFRICA_TERMS = (
+    "africa", "african", "kenya", "uganda", "tanzania", "ethiopia", "rwanda",
+    "burundi", "nigeria", "ghana", "malawi", "zambia", "zimbabwe", "mozambique",
+    "south africa", "cameroon", "senegal", "mali", "niger", "burkina faso",
+    "ivory coast", "cote d'ivoire", "benin", "togo", "sierra leone", "liberia",
+    "gambia", "sudan", "south sudan", "somalia", "eritrea", "djibouti",
+    "democratic republic of the congo", "congo", "angola", "botswana", "namibia",
+    "lesotho", "eswatini", "madagascar", "mauritius", "seychelles", "egypt",
+    "morocco", "algeria", "tunisia", "libya", "chad", "central african republic",
+    "gabon", "equatorial guinea", "comoros", "maize belt",
+)
+
 
 class _TextExtractor(HTMLParser):
     """Convert Crossref HTML/JATS abstract markup into readable plain text."""
@@ -53,19 +65,78 @@ def _publication_year(item):
     return None
 
 
-def search_crossref(query, rows=8):
-    """Search Crossref publication metadata, including an abstract when supplied."""
+def _record_from_crossref(item):
+    title = (item.get("title") or ["Untitled"])[0]
+    authors = item.get("author") or []
+    author_text = ", ".join(
+        " ".join(filter(None, [a.get("given"), a.get("family")]))
+        for a in authors
+        if isinstance(a, dict)
+    )
+    affiliations = []
+    for author in authors:
+        if isinstance(author, dict):
+            for affiliation in author.get("affiliation") or []:
+                if isinstance(affiliation, dict):
+                    affiliations.append(affiliation.get("name", ""))
+    return {
+        "title": title,
+        "authors": author_text or "Author information not supplied",
+        "year": _publication_year(item),
+        "journal": (item.get("container-title") or [""])[0],
+        "doi": str(item.get("DOI") or "").strip(),
+        "url": _safe_http_url(item.get("URL", "")),
+        "type": item.get("type", ""),
+        "abstract": clean_abstract(item.get("abstract", "")),
+        "affiliations": "; ".join(x for x in affiliations if x),
+    }
+
+
+def _africa_signal(record):
+    text = " ".join(str(record.get(k) or "") for k in ("title", "abstract", "affiliations", "journal")).lower()
+    hits = [term for term in AFRICA_TERMS if term in text]
+    return hits
+
+
+def _topic_score(record, query):
+    terms = [t for t in re.findall(r"[a-z0-9]+", str(query).lower()) if len(t) > 2]
+    title = str(record.get("title") or "").lower()
+    abstract = str(record.get("abstract") or "").lower()
+    return sum(3 for t in terms if t in title) + sum(1 for t in terms if t in abstract)
+
+
+def search_crossref(query, rows=8, start_year=None, end_year=None,
+                    africa_first=False, article_only=True):
+    """Search Crossref and locally screen, de-duplicate and rank metadata records.
+
+    Geographic ranking is a text signal, not proof of study location. Users should
+    confirm the study setting in the publisher abstract or full text.
+    """
     if not query or not str(query).strip():
         return []
     try:
         row_count = min(max(int(rows), 1), 20)
+        start_year = int(start_year) if start_year is not None else None
+        end_year = int(end_year) if end_year is not None else None
     except (TypeError, ValueError):
-        raise ValueError("The number of publication records must be an integer.")
+        raise ValueError("Record count and publication years must be valid numbers.")
+    if start_year and end_year and start_year > end_year:
+        raise ValueError("The start year must not be later than the end year.")
+
+    filters = []
+    if start_year:
+        filters.append(f"from-pub-date:{start_year}-01-01")
+    if end_year:
+        filters.append(f"until-pub-date:{end_year}-12-31")
+    params = {"query": str(query).strip(), "rows": min(row_count * 5, 100),
+              "select": "DOI,title,author,published,published-print,published-online,issued,created,container-title,type,abstract,URL"}
+    if filters:
+        params["filter"] = ",".join(filters)
+
     response = requests.get(
-        CROSSREF,
-        params={"query": str(query).strip(), "rows": row_count},
-        headers={"User-Agent": "ScienceFairWinner/1.0 (educational research assistant)"},
-        timeout=20,
+        CROSSREF, params=params,
+        headers={"User-Agent": "ScienceFairWinner/1.2 (educational research assistant)"},
+        timeout=25,
     )
     response.raise_for_status()
     payload = response.json()
@@ -73,25 +144,35 @@ def search_crossref(query, rows=8):
     items = message.get("items", []) if isinstance(message, dict) else []
     if not isinstance(items, list):
         raise ValueError("Crossref returned an unexpected publication-record format.")
-    results = []
-    for item in items:
-        title = (item.get("title") or ["Untitled"])[0]
-        authors = item.get("author") or []
-        author_text = ", ".join(
-            " ".join(filter(None, [a.get("given"), a.get("family")]))
-            for a in authors[:5]
-        )
-        results.append({
-            "title": title,
-            "authors": author_text or "Author information not supplied",
-            "year": _publication_year(item),
-            "journal": (item.get("container-title") or [""])[0],
-            "doi": str(item.get("DOI") or "").strip(),
-            "url": _safe_http_url(item.get("URL", "")),
-            "type": item.get("type", ""),
-            "abstract": clean_abstract(item.get("abstract", "")),
-        })
-    return results
+
+    allowed_types = {"journal-article", "proceedings-article", "posted-content", "book-chapter"}
+    results, seen = [], set()
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        record = _record_from_crossref(raw)
+        year = record.get("year")
+        if start_year and (not year or year < start_year):
+            continue
+        if end_year and (not year or year > end_year):
+            continue
+        if article_only and record["type"] not in allowed_types:
+            continue
+        identity = record["doi"].lower() or re.sub(r"\W+", "", record["title"].lower())
+        if identity in seen:
+            continue
+        seen.add(identity)
+        record["africa_matches"] = _africa_signal(record)
+        record["africa_relevance"] = bool(record["africa_matches"])
+        record["topic_score"] = _topic_score(record, query)
+        results.append(record)
+
+    results.sort(
+        key=lambda r: (bool(r["africa_relevance"]) if africa_first else False,
+                       r["topic_score"], bool(r["abstract"]), bool(r["doi"])),
+        reverse=True,
+    )
+    return results[:row_count]
 
 
 def _markdown_safe(value):
