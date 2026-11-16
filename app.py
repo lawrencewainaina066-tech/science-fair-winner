@@ -373,17 +373,21 @@ elif page == "Literature Search":
                 st.markdown(f"[Open DOI record]({doi_url(item['doi'])})")
             elif item["url"]:
                 st.markdown(f"[Open record]({item['url']})")
-            st.caption(f"Type: {item['type'] or 'Not supplied'}")
+            st.caption(f"Publication category: {item.get('publication_category', item['type'] or 'Not supplied')}")
+            st.caption(f"Topic relevance score: {item.get('topic_score', 0)} (higher scores indicate a closer metadata match, not scientific quality)")
+            if item.get("year_discrepancy"):
+                st.warning("Crossref contains differing publication-date fields for this record: " + ", ".join(str(y) for y in item.get("year_values", [])) + ". Verify the publication year on the publisher page.")
             if item.get("africa_relevance"):
                 matches = ", ".join(item.get("africa_matches", [])[:5])
                 st.success(f"African relevance signal found: {matches}. Confirm the actual study location in the paper.")
             elif africa_first:
                 st.caption("No clear African country or regional signal found in the available metadata.")
-            if item.get("abstract"):
-                with st.expander("Abstract supplied by Crossref"):
-                    st.write(item["abstract"])
+            abstract_text = str(item.get("abstract") or "").strip()
+            if abstract_text:
+                with st.expander("Crossref abstract", expanded=False):
+                    st.text(abstract_text)
             else:
-                st.caption("No abstract was supplied in the Crossref metadata.")
+                st.caption("Abstract unavailable in Crossref metadata. Open the DOI or publisher record to check whether the paper provides one.")
 
 elif page == "Data Analysis Lab":
     st.subheader("Scientific data analysis")
