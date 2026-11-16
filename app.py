@@ -175,28 +175,58 @@ elif page == "AI Science Assistant":
 
 elif page == "Research Project Planner":
     st.subheader("Build a research plan")
+    st.caption("Create an editable scientific proposal. The planner flags design mismatches and does not invent results or references.")
     with st.form("plan_form"):
-        title = st.text_input("Project title", placeholder="e.g. Effect of compost tea on maize seedling growth")
+        title = st.text_input("Project title", placeholder="e.g. Effects of compost tea concentrations on early maize growth")
         discipline = st.selectbox("Scientific discipline", DISCIPLINES)
         level = st.selectbox("Project level", ["School science fair", "College / university", "Independent research"])
-        problem = st.text_area("Problem or research topic", height=100)
-        constraints = st.text_area("Constraints, resources or location (optional)", height=70)
+        problem = st.text_area("Research problem or background", height=100,
+                               placeholder="What problem motivates this investigation? What is not yet known?")
+        c1, c2 = st.columns(2)
+        with c1:
+            location = st.text_input("Study location (optional)", placeholder="e.g. Rironi, Kipipiri, Nyandarua County")
+            duration = st.text_input("Available study duration (optional)", placeholder="e.g. 4 weeks")
+            intervention = st.text_input("Main factor or treatment (optional)", placeholder="e.g. compost tea concentration")
+        with c2:
+            primary_outcome = st.text_input("Primary outcome to measure (optional)", placeholder="e.g. maize seedling height in cm")
+            constraints = st.text_area("Resources, conditions and constraints (optional)", height=115,
+                                       placeholder="e.g. 12 seedlings, rain-fed, limited land, available equipment")
         submitted = st.form_submit_button("Generate research plan", type="primary")
     if submitted:
-        plan = build_research_plan(title, problem, discipline, level, constraints)
+        plan = build_research_plan(title, problem, discipline, level, constraints,
+                                   location=location, duration=duration,
+                                   intervention=intervention, primary_outcome=primary_outcome)
         st.session_state.active_project = plan
     if st.session_state.active_project:
         p = st.session_state.active_project
         st.markdown(f"### {p['title']}")
         st.write(f"**Discipline:** {p['discipline']}  |  **Level:** {p['level']}")
-        for key, label in [("problem_statement","Problem statement"),("aim","Aim"),("research_question","Research question"),("hypothesis","Draft hypothesis")]:
+        if p.get("warnings"):
+            st.error("Review these design issues before starting")
+            for warning in p["warnings"]:
+                st.write("• " + warning)
+        for key, label in [("problem_statement","Problem statement"),("aim","Aim"),("research_question","Research question"),("hypothesis","Null and alternative hypotheses")]:
             st.markdown(f"**{label}**")
             st.write(p[key])
-        st.markdown("**Variables**")
-        st.json(p["variables"])
+        st.markdown("**Specific objectives**")
+        for item in p.get("specific_objectives", []):
+            st.write("• " + item)
+        st.markdown("**Study design and treatment structure**")
+        st.write(p.get("study_design", ""))
+        for item in p.get("treatment_structure", []):
+            st.write("• " + item)
+        st.markdown("**Operational variables**")
+        for key, value in p["variables"].items():
+            st.markdown(f"**{key.title()}:** {value}")
         st.markdown("**Proposed method outline**")
-        for step in p["method_outline"]:
-            st.write("• " + step)
+        for i, step in enumerate(p["method_outline"], 1):
+            st.write(f"{i}. {step}")
+        st.markdown("**Scientific quality and safety checks**")
+        for item in p.get("quality_checks", []):
+            st.write("• " + item)
+        if p.get("constraints"):
+            st.markdown("**Study constraints and resources**")
+            st.write(p["constraints"])
         st.caption(p["integrity_note"])
         a, b, c = st.columns(3)
         with a:
