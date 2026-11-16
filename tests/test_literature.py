@@ -89,3 +89,59 @@ def test_reference_formatter_uses_safe_doi_url_and_escapes_title():
 
 def test_doi_url_encodes_metadata_for_safe_resolver_link():
     assert literature.doi_url("10.1234/a(b)") == "https://doi.org/10.1234/a%28b%29"
+
+
+
+def test_crop_filter_exact_match_excludes_other_crops(monkeypatch):
+    monkeypatch.setattr(literature.requests, "get", lambda *args, **kwargs: FakeResponse({
+        "message": {"items": [
+            {"title": ["Nitrogen fertilizer effects on maize yield"], "type": "journal-article",
+             "DOI": "10.1234/maize"},
+            {"title": ["Nitrogen fertilizer effects on rice yield"], "type": "journal-article",
+             "DOI": "10.1234/rice"},
+            {"title": ["Nitrogen fertilizer effects on roselle yield"], "type": "journal-article",
+             "DOI": "10.1234/roselle"},
+        ]}
+    }))
+    result = literature.search_crossref(
+        "nitrogen fertilizer maize yield", crop_filter="Exact crop match only"
+    )
+    assert [item["title"] for item in result] == [
+        "Nitrogen fertilizer effects on maize yield"
+    ]
+
+
+def test_related_crop_filter_keeps_cereal_studies_but_excludes_roselle(monkeypatch):
+    monkeypatch.setattr(literature.requests, "get", lambda *args, **kwargs: FakeResponse({
+        "message": {"items": [
+            {"title": ["Nitrogen fertilizer effects on maize yield"], "type": "journal-article",
+             "DOI": "10.1234/maize"},
+            {"title": ["Nitrogen fertilizer effects on rice yield"], "type": "journal-article",
+             "DOI": "10.1234/rice"},
+            {"title": ["Nitrogen fertilizer effects on roselle yield"], "type": "journal-article",
+             "DOI": "10.1234/roselle"},
+        ]}
+    }))
+    result = literature.search_crossref(
+        "nitrogen fertilizer maize yield", crop_filter="Related crops included"
+    )
+    titles = [item["title"] for item in result]
+    assert "Nitrogen fertilizer effects on maize yield" in titles
+    assert "Nitrogen fertilizer effects on rice yield" in titles
+    assert "Nitrogen fertilizer effects on roselle yield" not in titles
+
+
+def test_topic_sort_can_rank_international_topic_match_first(monkeypatch):
+    monkeypatch.setattr(literature.requests, "get", lambda *args, **kwargs: FakeResponse({
+        "message": {"items": [
+            {"title": ["Nitrogen fertilizer effects on maize yield in Kenya"],
+             "type": "journal-article", "DOI": "10.1234/kenya"},
+            {"title": ["Nitrogen fertilizer effects on maize growth, yield and nitrogen use efficiency"],
+             "type": "journal-article", "DOI": "10.1234/international"},
+        ]}
+    }))
+    result = literature.search_crossref(
+        "nitrogen fertilizer maize growth yield nitrogen use efficiency",
+        crop_filter="Exact crop match only", sort_by="Topic relevance"
+    )
+    assert result[0]["doi"] == "10.1234/international"
