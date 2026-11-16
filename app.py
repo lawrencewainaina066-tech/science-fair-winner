@@ -329,21 +329,36 @@ elif page == "Literature Search":
     st.subheader("Scholarly literature discovery")
     st.write("Searches Crossref publication metadata. Check the publisher or repository record before relying on a paper.")
     query = st.text_input("Search topic or keywords", placeholder="e.g. nitrogen fertilizer maize yield")
-    filter_cols = st.columns(4)
+    filter_cols = st.columns(3)
     with filter_cols[0]:
         start_year = st.number_input("From year", min_value=1900, max_value=2100, value=2020, step=1)
     with filter_cols[1]:
         end_year = st.number_input("To year", min_value=1900, max_value=2100, value=2026, step=1)
     with filter_cols[2]:
         count = st.slider("Maximum records", 3, 20, 10)
-    with filter_cols[3]:
+    option_cols = st.columns(3)
+    with option_cols[0]:
         africa_first = st.checkbox("Prioritise African studies", value=True)
+    with option_cols[1]:
+        crop_filter = st.selectbox(
+            "Crop relevance filter",
+            ["Exact crop match only", "Related crops included", "All relevant agricultural studies"],
+            index=1,
+            help="Exact match keeps records naming the crop in the title or abstract. Related crops includes other major crops when a cereal is searched."
+        )
+    with option_cols[2]:
+        sort_by = st.selectbox(
+            "Sort results by",
+            ["African relevance first", "Topic relevance"],
+            index=0 if africa_first else 1,
+            help="African relevance first ranks geographic signals before topic score. Topic relevance ranks subject match first."
+        )
     article_only = st.checkbox(
         "Research publications only (exclude tables, reviews and other components)",
         value=True,
         help="Keeps journal articles, conference papers, preprints and book chapters; excludes peer-review records and component records such as standalone tables."
     )
-    st.caption("African relevance is ranked using country and regional terms found in titles, abstracts and author affiliations. It is a screening signal, not proof of where the study was conducted.")
+    st.caption("African relevance uses country and regional terms in available metadata; it does not prove the study location. Topic scores are screening aids, not measures of study quality.")
     if st.button("Search publications", type="primary"):
         st.session_state.literature_results = []
         if not query.strip():
@@ -354,7 +369,8 @@ elif page == "Literature Search":
             try:
                 results = search_crossref(
                     query, count, start_year=int(start_year), end_year=int(end_year),
-                    africa_first=africa_first, article_only=article_only
+                    africa_first=africa_first, article_only=article_only,
+                    crop_filter=crop_filter, sort_by=sort_by
                 )
                 st.session_state.literature_results = results
                 if not results:
@@ -384,10 +400,17 @@ elif page == "Literature Search":
                 st.caption("No clear African country or regional signal found in the available metadata.")
             abstract_text = str(item.get("abstract") or "").strip()
             if abstract_text:
-                with st.expander("Crossref abstract", expanded=False):
-                    st.text(abstract_text)
+                st.caption(f"Abstract available from Crossref ({len(abstract_text)} characters).")
+                with st.expander("Read abstract", expanded=False):
+                    st.text_area(
+                        "Abstract text",
+                        value=abstract_text,
+                        height=min(320, max(120, 5 * (len(abstract_text) // 90 + 1))),
+                        disabled=True,
+                        key=f"literature_abstract_{item.get('doi') or item.get('title')}"
+                    )
             else:
-                st.caption("Abstract unavailable in Crossref metadata. Open the DOI or publisher record to check whether the paper provides one.")
+                st.caption("Abstract unavailable in Crossref metadata. This does not necessarily mean the publisher has no abstract.")
 
 elif page == "Data Analysis Lab":
     st.subheader("Scientific data analysis")
