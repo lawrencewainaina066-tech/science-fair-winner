@@ -102,7 +102,7 @@ def _term_matches(text, terms):
     """Match whole words/phrases to avoid false positives such as 'niger' in 'Nigeria'."""
     normalized = re.sub(r"[^a-z0-9]+", " ", str(text or "").lower())
     padded = " " + re.sub(r"\\s+", " ", normalized).strip() + " "
-    return [term for term in terms if " " + term.lower() + " " in padded]
+    return [term for term in terms if " " + re.sub(r"\\s+", " ", re.sub(r"[^a-z0-9]+", " ", term.lower())).strip() + " " in padded]
 
 
 def _africa_signal(record):
