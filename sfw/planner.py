@@ -152,5 +152,5 @@ def build_research_plan(title, problem, discipline, level="Science fair", constr
         "location": location, "duration": duration, "intervention": intervention,
         "primary_outcome": primary_outcome, "constraints": constraints,
         "created_at": datetime.now().isoformat(timespec="seconds"),
-        "integrity_note": "AI-assisted planning draft. Verify methods and treatment levels against current scientific literature and local conditions. No experiment, data, result or citation is claimed to have been produced."
+        "integrity_note": "AI-assisted planning draft, not evidence. Verify methods and treatment levels against current scientific literature and local conditions. No experiment, data, result or citation is claimed to have been produced."
     }
