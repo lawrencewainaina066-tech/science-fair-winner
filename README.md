@@ -1,6 +1,6 @@
 # Science Fair Winner (SFW)
 
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Purpose:** A multidisciplinary scientific research and problem-solving workspace for students, science-fair participants and independent researchers.
 
 Science Fair Winner combines an optional AI science assistant with research planning, methodology design, scholarly metadata discovery, local scientific calculations, statistical analysis, visualisation, project storage and report export.
@@ -81,7 +81,7 @@ Use only the Supabase anon/public key in Streamlit. Never add the Supabase `serv
 
 ## Important: project persistence
 
-The Project Library writes JSON files to the app's local data/projects/ directory. Shared-library mode is disabled by default because SFW does not yet have sign-in or private per-user storage; enabling it could expose saved plans to other app visitors. Set SFW_ENABLE_SHARED_PROJECT_LIBRARY=true only for a private, trusted, single-user deployment. The filesystem of a hosted app should not be treated as durable storage across rebuilds, restarts or redeployments. Back up local projects. Reliable multi-user cloud storage still requires a persistent database/object store and user access controls.
+When Supabase is configured, projects are stored in Postgres and isolated by authenticated user through row-level security. The optional local JSON library remains for trusted deployments only. Streamlit-hosted local filesystems may be reset during rebuilds, restarts or redeployments and should not be treated as durable storage.
 
 ## Optional AI provider setup
 
@@ -147,6 +147,7 @@ sfw/
   assistant.py       # AI providers and scientific response prompts
   analysis.py        # statistical analysis and validation
   config.py          # environment and Streamlit Secrets
+  cloud_storage.py   # Supabase Auth and per-user project storage
   literature.py      # Crossref retrieval and reference formatting
   methodology.py     # study design and methodology checks
   planner.py         # research plan generation
