@@ -83,6 +83,12 @@ def _record_from_crossref(item):
         "title": title,
         "authors": author_text or "Author information not supplied",
         "year": _publication_year(item),
+        "year_values": sorted({
+            parts[0][0]
+            for field in ("published", "published-print", "published-online", "issued", "created")
+            for parts in [(item.get(field) or {}).get("date-parts") or []]
+            if parts and parts[0]
+        }),
         "journal": (item.get("container-title") or [""])[0],
         "doi": str(item.get("DOI") or "").strip(),
         "url": _safe_http_url(item.get("URL", "")),
@@ -99,10 +105,56 @@ def _africa_signal(record):
 
 
 def _topic_score(record, query):
+    """Score topic fit, giving crop and core outcome concepts more weight."""
     terms = [t for t in re.findall(r"[a-z0-9]+", str(query).lower()) if len(t) > 2]
     title = str(record.get("title") or "").lower()
     abstract = str(record.get("abstract") or "").lower()
-    return sum(3 for t in terms if t in title) + sum(1 for t in terms if t in abstract)
+    full_text = title + " " + abstract
+    score = sum(3 for t in set(terms) if t in title) + sum(1 for t in set(terms) if t in abstract)
+
+    # Crop-specific relevance matters more than generic fertilizer terminology.
+    crop_groups = {
+        "maize": ("maize", "corn", "zea mays"),
+        "rice": ("rice", "oryza sativa"),
+        "wheat": ("wheat", "triticum"),
+        "sorghum": ("sorghum",),
+        "bean": ("bean", "beans", "phaseolus"),
+    }
+    requested_crops = [name for name, aliases in crop_groups.items()
+                       if any(alias in " ".join(terms) for alias in aliases)]
+    if requested_crops:
+        matching = any(alias in full_text for crop in requested_crops
+                       for alias in crop_groups[crop])
+        score += 12 if matching else -8
+        for crop, aliases in crop_groups.items():
+            if crop not in requested_crops and any(alias in title for alias in aliases):
+                score -= 10
+
+    concept_groups = {
+        "nitrogen": ("nitrogen", "n fertilizer"),
+        "yield": ("yield", "grain production", "productivity"),
+        "growth": ("growth", "plant height", "biomass"),
+        "efficiency": ("nitrogen use efficiency", "nutrient use efficiency", "nue"),
+    }
+    for aliases in concept_groups.values():
+        if any(alias in title for alias in aliases):
+            score += 4
+        elif any(alias in abstract for alias in aliases):
+            score += 2
+    return score
+
+
+def _publication_category(record):
+    record_type = str(record.get("type") or "").lower()
+    if record_type == "posted-content":
+        return "Preprint / working paper"
+    if record_type == "journal-article":
+        return "Journal article (peer-review status not verified)"
+    if record_type == "proceedings-article":
+        return "Conference proceedings"
+    if record_type == "book-chapter":
+        return "Book chapter"
+    return record_type.replace("-", " ").title() or "Publication type unavailable"
 
 
 def search_crossref(query, rows=8, start_year=None, end_year=None,
@@ -172,6 +224,10 @@ def search_crossref(query, rows=8, start_year=None, end_year=None,
                        r["topic_score"], bool(r["abstract"]), bool(r["doi"])),
         reverse=True,
     )
+    for record in results:
+        record["publication_category"] = _publication_category(record)
+        years = record.get("year_values") or []
+        record["year_discrepancy"] = len(years) > 1 and (max(years) - min(years) > 1)
     return results[:row_count]
 
 
