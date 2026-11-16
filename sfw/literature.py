@@ -158,7 +158,8 @@ def _publication_category(record):
 
 
 def search_crossref(query, rows=8, start_year=None, end_year=None,
-                    africa_first=False, article_only=True):
+                    africa_first=False, article_only=True,
+                    crop_filter="Related crops included", sort_by=None):
     """Search Crossref and locally screen, de-duplicate and rank metadata records.
 
     Geographic ranking is a text signal, not proof of study location. Users should
@@ -219,11 +220,48 @@ def search_crossref(query, rows=8, start_year=None, end_year=None,
         record["topic_score"] = _topic_score(record, query)
         results.append(record)
 
-    results.sort(
-        key=lambda r: (bool(r["africa_relevance"]) if africa_first else False,
-                       r["topic_score"], bool(r["abstract"]), bool(r["doi"])),
-        reverse=True,
-    )
+    crop_aliases = {
+        "maize": ("maize", "corn", "zea mays"),
+        "rice": ("rice", "oryza sativa"),
+        "wheat": ("wheat", "triticum"),
+        "sorghum": ("sorghum",),
+        "millet": ("millet",),
+        "barley": ("barley",),
+        "oat": ("oat", "avena sativa"),
+        "bean": ("bean", "beans", "phaseolus"),
+        "soybean": ("soybean", "soya", "glycine max"),
+        "groundnut": ("groundnut", "peanut", "arachis hypogaea"),
+        "potato": ("potato", "solanum tuberosum"),
+    }
+    query_text = str(query).lower()
+    requested = [crop for crop, aliases in crop_aliases.items()
+                 if any(alias in query_text for alias in aliases)]
+    crop_filter = crop_filter or "Related crops included"
+    if crop_filter == "Exact crop match only" and requested:
+        results = [
+            record for record in results
+            if any(alias in (str(record.get("title") or "") + " " +
+                             str(record.get("abstract") or "")).lower()
+                   for crop in requested for alias in crop_aliases[crop])
+        ]
+    elif crop_filter == "Related crops included" and requested:
+        related = set(requested)
+        if any(crop in requested for crop in ("maize", "rice", "wheat", "sorghum", "millet", "barley", "oat")):
+            related.update(("maize", "rice", "wheat", "sorghum", "millet", "barley", "oat"))
+        results = [
+            record for record in results
+            if any(alias in (str(record.get("title") or "") + " " +
+                             str(record.get("abstract") or "")).lower()
+                   for crop in related for alias in crop_aliases[crop])
+        ]
+
+    selected_sort = sort_by or ("African relevance first" if africa_first else "Topic relevance")
+    if selected_sort == "African relevance first":
+        results.sort(key=lambda r: (bool(r["africa_relevance"]), r["topic_score"],
+                                    bool(r["abstract"]), bool(r["doi"])), reverse=True)
+    else:
+        results.sort(key=lambda r: (r["topic_score"], bool(r["africa_relevance"]),
+                                    bool(r["abstract"]), bool(r["doi"])), reverse=True)
     for record in results:
         record["publication_category"] = _publication_category(record)
         years = record.get("year_values") or []
