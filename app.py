@@ -328,30 +328,57 @@ elif page == "Research Methodology Engine":
 elif page == "Literature Search":
     st.subheader("Scholarly literature discovery")
     st.write("Searches Crossref publication metadata. Check the publisher or repository record before relying on a paper.")
-    query = st.text_input("Search topic or keywords", placeholder="e.g. biochar soil fertility maize yield")
-    count = st.slider("Maximum records", 3, 20, 8)
+    query = st.text_input("Search topic or keywords", placeholder="e.g. nitrogen fertilizer maize yield")
+    filter_cols = st.columns(4)
+    with filter_cols[0]:
+        start_year = st.number_input("From year", min_value=1900, max_value=2100, value=2020, step=1)
+    with filter_cols[1]:
+        end_year = st.number_input("To year", min_value=1900, max_value=2100, value=2026, step=1)
+    with filter_cols[2]:
+        count = st.slider("Maximum records", 3, 20, 10)
+    with filter_cols[3]:
+        africa_first = st.checkbox("Prioritise African studies", value=True)
+    article_only = st.checkbox(
+        "Research publications only (exclude tables, reviews and other components)",
+        value=True,
+        help="Keeps journal articles, conference papers, preprints and book chapters; excludes peer-review records and component records such as standalone tables."
+    )
+    st.caption("African relevance is ranked using country and regional terms found in titles, abstracts and author affiliations. It is a screening signal, not proof of where the study was conducted.")
     if st.button("Search publications", type="primary"):
         st.session_state.literature_results = []
         if not query.strip():
             st.warning("Enter a topic or keywords before searching.")
+        elif start_year > end_year:
+            st.warning("The start year must not be later than the end year.")
         else:
             try:
-                results = search_crossref(query, count)
+                results = search_crossref(
+                    query, count, start_year=int(start_year), end_year=int(end_year),
+                    africa_first=africa_first, article_only=article_only
+                )
                 st.session_state.literature_results = results
                 if not results:
-                    st.info("Crossref did not return records for this search. Try broader or alternative keywords.")
+                    st.info("No records matched these filters. Try broader keywords, a wider date range or include other publication types.")
             except Exception as e:
                 st.error(f"Literature search failed: {e}")
-    for item in st.session_state.get("literature_results", []):
+    results_to_show = st.session_state.get("literature_results", [])
+    if results_to_show:
+        st.caption(f"{len(results_to_show)} screened Crossref record(s). Missing metadata is shown as unavailable; no authors or abstracts are invented.")
+    for item in results_to_show:
         with st.container(border=True):
             st.markdown(f"**{item['title']}**")
-            st.write(f"{item['authors']} • {item['year'] or 'Year not supplied'} • {item['journal']}")
+            st.write(f"{item['authors']} • {item['year'] or 'Year not supplied'} • {item['journal'] or 'Journal not supplied'}")
             if item["doi"]:
                 st.write(f"DOI: {item['doi']}")
                 st.markdown(f"[Open DOI record]({doi_url(item['doi'])})")
             elif item["url"]:
                 st.markdown(f"[Open record]({item['url']})")
             st.caption(f"Type: {item['type'] or 'Not supplied'}")
+            if item.get("africa_relevance"):
+                matches = ", ".join(item.get("africa_matches", [])[:5])
+                st.success(f"African relevance signal found: {matches}. Confirm the actual study location in the paper.")
+            elif africa_first:
+                st.caption("No clear African country or regional signal found in the available metadata.")
             if item.get("abstract"):
                 with st.expander("Abstract supplied by Crossref"):
                     st.write(item["abstract"])
