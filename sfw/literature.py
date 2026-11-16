@@ -159,7 +159,8 @@ def _publication_category(record):
 
 def search_crossref(query, rows=8, start_year=None, end_year=None,
                     africa_first=False, article_only=True,
-                    crop_filter="Related crops included", sort_by=None):
+                    crop_filter="Related crops included", sort_by=None,
+                    include_preprints=False):
     """Search Crossref and locally screen, de-duplicate and rank metadata records.
 
     Geographic ranking is a text signal, not proof of study location. Users should
@@ -211,11 +212,17 @@ def search_crossref(query, rows=8, start_year=None, end_year=None,
             continue
         if article_only and record["type"] not in allowed_types:
             continue
+        if not include_preprints and record["type"] == "posted-content":
+            continue
         identity = record["doi"].lower() or re.sub(r"\W+", "", record["title"].lower())
         if identity in seen:
             continue
         seen.add(identity)
-        record["africa_matches"] = _africa_signal(record)
+        title_abstract = " ".join(str(record.get(k) or "") for k in ("title", "abstract")).lower()
+        affiliation_journal = " ".join(str(record.get(k) or "") for k in ("affiliations", "journal")).lower()
+        record["africa_study_text_matches"] = [term for term in AFRICA_TERMS if term in title_abstract]
+        record["africa_affiliation_matches"] = [term for term in AFRICA_TERMS if term in affiliation_journal]
+        record["africa_matches"] = list(dict.fromkeys(record["africa_study_text_matches"] + record["africa_affiliation_matches"]))
         record["africa_relevance"] = bool(record["africa_matches"])
         record["topic_score"] = _topic_score(record, query)
         results.append(record)
