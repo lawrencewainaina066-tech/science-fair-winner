@@ -60,13 +60,32 @@ if "sfw_page" not in st.session_state:
 if "sfw_navigation_target" in st.session_state:
     st.session_state["sfw_page"] = st.session_state.pop("sfw_navigation_target")
 
+# Keep owner-only tools out of the public navigation. The Admin Dashboard is
+# shown only after Supabase confirms the signed-in user's admin role.
+is_platform_admin = False
+access_token_for_navigation = st.session_state.get("sfw_access_token")
+if access_token_for_navigation:
+    try:
+        from sfw import cloud_storage
+        is_platform_admin = cloud_storage.is_admin(access_token_for_navigation)
+    except Exception:
+        is_platform_admin = False
+
+workspace_pages = [
+    "Home", "AI Science Assistant", "Research Project Planner", "Research Methodology Engine",
+    "Literature Search", "Data Analysis Lab", "Project Library", "About & Settings"
+]
+if is_platform_admin:
+    workspace_pages.insert(-1, "Admin Dashboard")
+
+# A stale or manually modified page value must not expose a hidden workspace.
+if st.session_state.get("sfw_page") not in workspace_pages:
+    st.session_state["sfw_page"] = "Home"
+
 with st.sidebar:
     st.markdown("### 🔬 SFW Workspace")
     st.caption("Your research, one step at a time")
-    page = st.radio("Choose a workspace", [
-        "Home", "AI Science Assistant", "Research Project Planner", "Research Methodology Engine",
-        "Literature Search", "Data Analysis Lab", "Project Library", "Admin Dashboard", "RTX GPU Server", "About & Settings"
-    ], key="sfw_page")
+    page = st.radio("Choose a workspace", workspace_pages, key="sfw_page")
     st.divider()
     st.caption("SFW v1.2.0 • Scientific research workspace")
     if st.session_state.get("sfw_access_token"):
@@ -120,7 +139,6 @@ if page == "Home":
         ("🗂️ Project Library", "Sign in to save and retrieve private research plans.", "Project Library"),
         ("📄 Report downloads", "Export research plans as Word or PDF from the planner.", "Research Project Planner"),
         ("🛠️ Settings & help", "Check AI setup, privacy notes and service connections.", "About & Settings"),
-        ("🖥️ RTX GPU Server", "Check the connected remote service.", "RTX GPU Server"),
     ]
     for i, (title, desc, target) in enumerate(tools):
         with tool_cols[i % 3]:
