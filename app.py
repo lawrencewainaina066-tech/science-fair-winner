@@ -17,13 +17,76 @@ from sfw.reporting import build_docx, build_pdf
 st.set_page_config(page_title=APP_NAME, page_icon="🔬", layout="wide")
 st.title("🔬 Science Fair Winner (SFW)")
 st.caption(APP_TAGLINE)
-st.markdown("<style>\n:root{\n --sfw-navy:#14213D;--sfw-blue:#2563EB;--sfw-teal:#14B8A6;\n --sfw-ink:#14213D;--sfw-soft:#F8FAFC;\n}\n.stApp{background:linear-gradient(180deg,rgba(37,99,235,.035),transparent 32%)}\n[data-testid=\"stHeader\"]{background:rgba(255,255,255,.0)}\n[data-testid=\"stSidebar\"]{background:linear-gradient(180deg,#14213D 0%,#1E3A5F 100%);color:#f8fafc}\n[data-testid=\"stSidebar\"] *{color:#f8fafc}\n[data-testid=\"stSidebar\"] [data-testid=\"stRadio\"] label{background:rgba(255,255,255,.055);padding:.45rem .6rem;border-radius:9px;margin:.12rem 0}\n[data-testid=\"stSidebar\"] [data-testid=\"stRadio\"] label:hover{background:rgba(255,255,255,.14)}\n[data-testid=\"stSidebar\"] hr{border-color:rgba(255,255,255,.2)}\nh1,h2,h3{color:#1E3A5F;letter-spacing:-.025em}\n[data-testid=\"stMetric\"]{background:linear-gradient(135deg,#F8FAFC,#ecfeff);border:1px solid #bfdbfe;padding:14px;border-radius:14px}\n.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button{border-radius:10px;min-height:2.6rem;font-weight:650;border:1px solid #2563eb}\n.stButton>button[kind=\"primary\"],.stFormSubmitButton>button[kind=\"primary\"]{background:linear-gradient(100deg,#2563EB,#14B8A6);color:white;border:0}\n.stButton>button:hover,.stDownloadButton>button:hover{border-color:#14B8A6;color:#075985}\ndiv[data-testid=\"stExpander\"]{border:1px solid #cbd5e1;border-radius:12px;overflow:hidden}\ndiv[data-testid=\"stAlert\"]{border-radius:12px}\n.sfw-hero{padding:2rem 2.2rem;border:1px solid #243B63;border-radius:22px;background:linear-gradient(120deg,#101D35 0%,#18345A 62%,#075E63 100%);margin-bottom:1.4rem;color:#FFFFFF;box-shadow:0 14px 32px rgba(16,29,53,.20)}
-.sfw-hero h2{color:#FFFFFF!important;font-size:clamp(1.8rem,3.2vw,2.5rem);line-height:1.2;font-weight:800;letter-spacing:-.03em;margin:0 0 .85rem 0}
-.sfw-hero p{color:#F8FAFC!important;font-size:1.08rem;line-height:1.7;font-weight:500;margin:0;opacity:1!important}
-.sfw-step{padding:1.15rem;border:1px solid #D7E0EA;border-radius:16px;min-height:125px;background:#FFFFFF;color:#14213D;box-shadow:0 6px 18px rgba(20,33,61,.07)}
-.sfw-step b{color:#14213D!important;font-size:1.04rem}
-.sfw-muted{color:#334155!important;font-size:.96rem;line-height:1.55;opacity:1!important}\n[data-testid=\"stDataFrame\"]{border:1px solid #cbd5e1;border-radius:12px;overflow:hidden}\ninput,textarea,[data-baseweb=\"select\"]>div{border-radius:9px!important}\n</style>", unsafe_allow_html=True)
-st.markdown("<style>\n.block-container{max-width:1180px;padding-top:2rem;padding-bottom:3rem}\n[data-testid=\"stSidebar\"]{border-right:1px solid rgba(128,128,128,.18)}\n[data-testid=\"stMetric\"]{background:rgba(128,128,128,.07);border:1px solid rgba(128,128,128,.14);padding:14px;border-radius:14px}\n.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button{border-radius:10px;min-height:2.6rem;font-weight:600}\ndiv[data-testid=\"stExpander\"],div[data-testid=\"stAlert\"]{border-radius:12px}\n.sfw-hero{padding:1.4rem 1.5rem;border:1px solid rgba(128,128,128,.2);border-radius:18px;background:linear-gradient(120deg,rgba(37,99,235,.10),rgba(16,185,129,.06));margin-bottom:1.2rem}\n.sfw-step{padding:.9rem 1rem;border:1px solid rgba(128,128,128,.18);border-radius:14px;min-height:118px}\n.sfw-muted{opacity:.75;font-size:.92rem}\n</style>", unsafe_allow_html=True)
+st.markdown("""
+<style>
+:root {
+  --sfw-navy: #14213D;
+  --sfw-blue: #2563EB;
+  --sfw-teal: #0F766E;
+  --sfw-ink: #172033;
+  --sfw-muted: #475569;
+}
+.stApp { background: #F6F8FC; }
+.block-container { max-width: 1180px; padding-top: 2rem; padding-bottom: 3rem; }
+[data-testid="stHeader"] { background: transparent; }
+[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, #14213D 0%, #1E3A5F 100%);
+  border-right: 1px solid rgba(255,255,255,.12);
+}
+[data-testid="stSidebar"] * { color: #F8FAFC; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+  background: rgba(255,255,255,.07); padding: .5rem .65rem;
+  border-radius: 9px; margin: .14rem 0;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover { background: rgba(255,255,255,.16); }
+[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,.2); }
+h1, h2, h3 { color: #172B4D; letter-spacing: -.02em; }
+.sfw-hero {
+  padding: 2rem 2.2rem; border: 1px solid #1E3A5F; border-radius: 22px;
+  background: linear-gradient(115deg, #14213D 0%, #1E3A5F 68%, #0F766E 100%);
+  margin-bottom: 1.4rem; color: #FFFFFF;
+  box-shadow: 0 14px 32px rgba(20,33,61,.18);
+}
+.sfw-hero h2 {
+  color: #FFFFFF !important; font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+  line-height: 1.2; font-weight: 800; letter-spacing: -.03em;
+  margin: 0 0 .85rem 0;
+}
+.sfw-hero p {
+  color: #F8FAFC !important; font-size: 1.08rem; line-height: 1.7;
+  font-weight: 500; margin: 0; opacity: 1 !important;
+}
+.sfw-step {
+  padding: 1.15rem; border: 1px solid #D7E0EA; border-radius: 16px;
+  min-height: 125px; background: #FFFFFF; color: #14213D;
+  box-shadow: 0 6px 18px rgba(20,33,61,.07);
+}
+.sfw-step b { color: #14213D !important; font-size: 1.04rem; }
+.sfw-muted { color: #334155 !important; font-size: .96rem; line-height: 1.55; opacity: 1 !important; }
+[data-testid="stMetric"] {
+  background: #FFFFFF; border: 1px solid #D7E0EA;
+  padding: 14px; border-radius: 14px;
+}
+.stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+  border-radius: 10px; min-height: 2.6rem; font-weight: 650;
+  border: 1px solid #2563EB;
+}
+.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] {
+  background: #2563EB; color: #FFFFFF; border: 0;
+}
+.stButton > button:hover, .stDownloadButton > button:hover {
+  border-color: #0F766E; color: #0F766E;
+}
+div[data-testid="stExpander"], div[data-testid="stAlert"] {
+  border-radius: 12px;
+}
+[data-testid="stDataFrame"] {
+  border: 1px solid #CBD5E1; border-radius: 12px; overflow: hidden;
+}
+input, textarea, [data-baseweb="select"] > div { border-radius: 9px !important; }
+</style>
+""", unsafe_allow_html=True)
+
 shared_project_library_enabled = _setting("SFW_ENABLE_SHARED_PROJECT_LIBRARY", "false").lower() in ("1", "true", "yes", "on")
 
 with st.sidebar:
