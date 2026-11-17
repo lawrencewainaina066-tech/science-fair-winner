@@ -27,6 +27,18 @@ with st.sidebar:
     ])
     st.divider()
     st.caption("SFW v1.2.0 • Scientific research workspace")
+    if st.session_state.get("sfw_access_token"):
+        st.caption(f"Signed in: {st.session_state.get('sfw_account_email', 'Account')}")
+        if st.button("Sign out", key="sfw_global_signout", use_container_width=True):
+            from sfw import cloud_storage
+            token = st.session_state.get("sfw_access_token")
+            try:
+                cloud_storage.logout(token)
+            except Exception:
+                pass
+            for key in ("sfw_access_token", "sfw_refresh_token", "sfw_account_email"):
+                st.session_state.pop(key, None)
+            st.rerun()
 
 if "chat" not in st.session_state:
     st.session_state.chat = []
@@ -549,14 +561,6 @@ elif page == "Project Library":
         if access_token:
             account_email = st.session_state.get("sfw_account_email", "Signed-in account")
             st.success(f"Signed in as {account_email}")
-            if st.button("Sign out", key="sfw_cloud_signout"):
-                try:
-                    cloud_storage.logout(access_token)
-                except Exception:
-                    pass
-                for key in ("sfw_access_token", "sfw_refresh_token", "sfw_account_email"):
-                    st.session_state.pop(key, None)
-                st.rerun()
             try:
                 projects = cloud_storage.list_projects(access_token)
                 st.caption(f"{len(projects)} privately stored project(s). Access is restricted by Supabase row-level security.")
