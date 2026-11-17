@@ -54,6 +54,11 @@ hr { border-color:#E1E8F0; }
 
 shared_project_library_enabled = _setting("SFW_ENABLE_SHARED_PROJECT_LIBRARY", "false").lower() in ("1", "true", "yes", "on")
 
+if "sfw_page" not in st.session_state:
+    st.session_state["sfw_page"] = "Home"
+if "sfw_navigation_target" in st.session_state:
+    st.session_state["sfw_page"] = st.session_state.pop("sfw_navigation_target")
+
 with st.sidebar:
     st.markdown("### 🔬 SFW Workspace")
     st.caption("Your research, one step at a time")
@@ -104,7 +109,7 @@ if page == "Home":
         with col:
             st.markdown(f'<div class="sfw-step"><div style="font-size:1.6rem">{emoji}</div><b>{title}</b><p class="sfw-muted">{desc}</p></div>', unsafe_allow_html=True)
             if st.button(f"Open {title} →", key=f"home_{target}", use_container_width=True):
-                st.session_state["sfw_page"] = target
+                st.session_state["sfw_navigation_target"] = target
                 st.rerun()
     st.markdown("### More tools")
     tool_cols = st.columns(3)
