@@ -31,7 +31,7 @@ grant insert, select on public.sfw_login_events to authenticated;
 grant usage, select on sequence public.sfw_login_events_id_seq to authenticated;
 
 -- After the migration, promote the owner account in Supabase SQL Editor.
--- Replace the email below with the exact email used for the SFW owner account.
--- update auth.users
--- set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
--- where lower(email) = lower('YOUR_OWNER_EMAIL');
+-- Promote the designated SFW owner account to admin.
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+where lower(email) = lower('lawrencewainaina066@gmail.com');
