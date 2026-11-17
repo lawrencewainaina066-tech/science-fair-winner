@@ -17,14 +17,16 @@ from sfw.reporting import build_docx, build_pdf
 st.set_page_config(page_title=APP_NAME, page_icon="🔬", layout="wide")
 st.title("🔬 Science Fair Winner (SFW)")
 st.caption(APP_TAGLINE)
+st.markdown("<style>\n.block-container{max-width:1180px;padding-top:2rem;padding-bottom:3rem}\n[data-testid=\"stSidebar\"]{border-right:1px solid rgba(128,128,128,.18)}\n[data-testid=\"stMetric\"]{background:rgba(128,128,128,.07);border:1px solid rgba(128,128,128,.14);padding:14px;border-radius:14px}\n.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button{border-radius:10px;min-height:2.6rem;font-weight:600}\ndiv[data-testid=\"stExpander\"],div[data-testid=\"stAlert\"]{border-radius:12px}\n.sfw-hero{padding:1.4rem 1.5rem;border:1px solid rgba(128,128,128,.2);border-radius:18px;background:linear-gradient(120deg,rgba(37,99,235,.10),rgba(16,185,129,.06));margin-bottom:1.2rem}\n.sfw-step{padding:.9rem 1rem;border:1px solid rgba(128,128,128,.18);border-radius:14px;min-height:118px}\n.sfw-muted{opacity:.75;font-size:.92rem}\n</style>", unsafe_allow_html=True)
 shared_project_library_enabled = _setting("SFW_ENABLE_SHARED_PROJECT_LIBRARY", "false").lower() in ("1", "true", "yes", "on")
 
 with st.sidebar:
-    st.header("Workspace")
-    page = st.radio("Open module", [
+    st.markdown("### 🔬 SFW Workspace")
+    st.caption("Your research, one step at a time")
+    page = st.radio("Choose a workspace", [
         "Home", "AI Science Assistant", "Research Project Planner", "Research Methodology Engine",
         "Literature Search", "Data Analysis Lab", "Project Library", "Admin Dashboard", "RTX GPU Server", "About & Settings"
-    ])
+    ], key="sfw_page")
     st.divider()
     st.caption("SFW v1.2.0 • Scientific research workspace")
     if st.session_state.get("sfw_access_token"):
@@ -46,21 +48,38 @@ if "active_project" not in st.session_state:
     st.session_state.active_project = None
 
 if page == "Home":
-    st.subheader("Your scientific investigation workspace")
-    st.markdown("SFW helps turn scientific questions into structured investigations, analyse supplied data and prepare clear research documents.")
-    cols = st.columns(3)
-    cards = [
-        ("🧠 AI Science Assistant", "Discuss research questions and scientific concepts."),
-        ("🧪 Research Planner", "Draft aims, hypotheses, variables and methods."),
-        ("📊 Data Analysis Lab", "Explore CSV/Excel data, statistics and charts."),
-        ("📚 Literature Search", "Find scholarly publication metadata through Crossref."),
-        ("🗂️ Project Library", "Optional project storage for trusted private workspaces."),
-        ("📄 Report Builder", "Export project plans as DOCX or PDF.")
+    st.markdown('<div class="sfw-hero"><h2>Turn a question into a scientific investigation.</h2><p class="sfw-muted">Explore an idea, plan your study, analyse evidence and prepare a report — all in one place.</p></div>', unsafe_allow_html=True)
+    st.markdown("### Start here")
+    start_cols = st.columns(3)
+    quick_starts = [
+        ("🧠", "Explore an idea", "Ask a science question or refine a topic.", "AI Science Assistant"),
+        ("🧪", "Plan a project", "Create a research question, objectives and study plan.", "Research Project Planner"),
+        ("📊", "Analyse data", "Upload a CSV or Excel file and explore results.", "Data Analysis Lab"),
     ]
-    for i, (title, desc) in enumerate(cards):
-        with cols[i % 3]:
-            st.info(f"**{title}**\n\n{desc}")
-    st.warning("SFW is a research-support tool. It does not independently validate experiments, guarantee scientific correctness or replace expert supervision.")
+    for col, (emoji, title, desc, target) in zip(start_cols, quick_starts):
+        with col:
+            st.markdown(f'<div class="sfw-step"><div style="font-size:1.6rem">{emoji}</div><b>{title}</b><p class="sfw-muted">{desc}</p></div>', unsafe_allow_html=True)
+            if st.button(f"Open {title} →", key=f"home_{target}", use_container_width=True):
+                st.session_state["sfw_page"] = target
+                st.rerun()
+    st.markdown("### More tools")
+    tool_cols = st.columns(3)
+    tools = [
+        ("📚 Literature Search", "Find scholarly publication records and DOI links.", "Literature Search"),
+        ("🧭 Methodology Engine", "Turn your research question into a study method.", "Research Methodology Engine"),
+        ("🗂️ Project Library", "Sign in to save and retrieve private research plans.", "Project Library"),
+        ("📄 Report downloads", "Export research plans as Word or PDF from the planner.", "Research Project Planner"),
+        ("🛠️ Settings & help", "Check AI setup, privacy notes and service connections.", "About & Settings"),
+        ("🖥️ RTX GPU Server", "Check the connected remote service.", "RTX GPU Server"),
+    ]
+    for i, (title, desc, target) in enumerate(tools):
+        with tool_cols[i % 3]:
+            st.markdown(f"**{title}**  \\n{desc}")
+            if st.button("Open", key=f"home_tool_{i}", use_container_width=True):
+                st.session_state["sfw_page"] = target
+                st.rerun()
+    with st.expander("Important research and privacy note"):
+        st.write("SFW supports research planning and analysis. It does not independently validate experiments or replace expert supervision. Use verified evidence, follow safety and ethics requirements, and avoid uploading confidential data unless you have permission.")
 
 elif page == "AI Science Assistant":
     st.subheader("Scientific conversation")
