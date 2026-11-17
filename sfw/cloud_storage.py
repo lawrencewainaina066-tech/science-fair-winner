@@ -81,6 +81,55 @@ def sign_in(email, password):
     return result
 
 
+def current_user(access_token):
+    base, key = _settings()
+    result = _request(
+        "GET", f"{base}/auth/v1/user",
+        headers=_headers(key, access_token),
+    )
+    if not isinstance(result, dict) or not result.get("id"):
+        raise CloudStorageError("Could not verify the signed-in account.")
+    return result
+
+
+def is_admin(access_token):
+    user = current_user(access_token)
+    return user.get("app_metadata", {}).get("role") == "admin"
+
+
+def log_auth_event(access_token, event_type):
+    if event_type not in {"sign_in", "sign_up"}:
+        raise CloudStorageError("Unsupported authentication event.")
+    user = current_user(access_token)
+    base, key = _settings()
+    result = _request(
+        "POST", f"{base}/rest/v1/sfw_login_events",
+        headers=_headers(key, access_token, "return=representation"),
+        json={"user_id": user["id"], "email": user.get("email", ""), "event_type": event_type},
+    )
+    if not isinstance(result, list) or not result:
+        raise CloudStorageError("The sign-in event was not confirmed as recorded.")
+    return result[0]
+
+
+def list_login_events(access_token, limit=100):
+    if not is_admin(access_token):
+        raise CloudStorageError("Administrator access is required to view login activity.")
+    base, key = _settings()
+    result = _request(
+        "GET", f"{base}/rest/v1/sfw_login_events",
+        headers=_headers(key, access_token),
+        params={
+            "select": "id,email,event_type,created_at",
+            "order": "created_at.desc",
+            "limit": max(1, min(int(limit), 500)),
+        },
+    )
+    if not isinstance(result, list):
+        raise CloudStorageError("The login activity response was invalid.")
+    return result
+
+
 def refresh_session(refresh_token):
     base, key = _settings()
     result = _request(
