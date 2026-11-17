@@ -41,8 +41,9 @@ h1,h2,h3 { color:#152744; letter-spacing:-.025em; }
 .sfw-muted { color:#52627A!important; font-size:.94rem; line-height:1.6; opacity:1!important; }
 .sfw-step-icon { display:inline-flex; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; border-radius:12px; background:#EDF3FF; font-size:1.25rem; }
 [data-testid="stMetric"] { background:#FFF; border:1px solid var(--sfw-line); padding:15px 17px; border-radius:15px; box-shadow:0 5px 16px rgba(24,45,78,.04); }
-.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button { border-radius:11px; min-height:2.65rem; font-weight:700; border:1px solid #CBD7E8; }
-.stButton>button[kind="primary"],.stFormSubmitButton>button[kind="primary"] { background:#315CEB; color:#FFF; border:1px solid #315CEB; }
+.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button { border-radius:11px; min-height:2.65rem; font-weight:700; background-color:#FFFFFF !important; color:#0F766E !important; border:1px solid #0F766E !important; }
+.stButton>button[kind="primary"],.stFormSubmitButton>button[kind="primary"] { background:#315CEB !important; color:#FFFFFF !important; border:1px solid #315CEB !important; }
+.stButton>button:disabled,.stDownloadButton>button:disabled { background-color:#F1F5F9 !important; color:#64748B !important; border-color:#CBD5E1 !important; }
 .stButton>button:hover,.stDownloadButton>button:hover { border-color:#0F8B82; color:#0F766E; }
 div[data-testid="stExpander"],div[data-testid="stAlert"] { border-radius:13px; }
 [data-testid="stDataFrame"] { border:1px solid #D5DFEA; border-radius:13px; overflow:hidden; }
