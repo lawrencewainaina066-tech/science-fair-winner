@@ -49,7 +49,7 @@ if "active_project" not in st.session_state:
     st.session_state.active_project = None
 
 if page == "Home":
-    st.markdown('<div class="sfw-hero"><h2>Turn a question into a scientific investigation.</h2><p class="sfw-muted">Explore an idea, plan your study, analyse evidence and prepare a report — all in one place.</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sfw-hero"><h2>Have a science question? Turn it into a research project.</h2><p class="sfw-muted">Start with a question, build a study plan, examine your results and prepare a report — step by step.</p></div>', unsafe_allow_html=True)
     st.markdown("### Start here")
     start_cols = st.columns(3)
     quick_starts = [
