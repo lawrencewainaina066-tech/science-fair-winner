@@ -23,7 +23,7 @@ with st.sidebar:
     st.header("Workspace")
     page = st.radio("Open module", [
         "Home", "AI Science Assistant", "Research Project Planner", "Research Methodology Engine",
-        "Literature Search", "Data Analysis Lab", "Project Library", "RTX GPU Server", "About & Settings"
+        "Literature Search", "Data Analysis Lab", "Project Library", "Admin Dashboard", "RTX GPU Server", "About & Settings"
     ])
     st.divider()
     st.caption("SFW v1.2.0 • Scientific research workspace")
@@ -599,6 +599,10 @@ elif page == "Project Library":
                         st.session_state["sfw_access_token"] = session["access_token"]
                         st.session_state["sfw_refresh_token"] = session.get("refresh_token")
                         st.session_state["sfw_account_email"] = email.strip()
+                        try:
+                            cloud_storage.log_auth_event(session["access_token"], "sign_in")
+                        except Exception as audit_exc:
+                            st.warning(f"Signed in, but login activity could not be recorded: {audit_exc}")
                         st.rerun()
                     except Exception as exc:
                         st.error(str(exc))
@@ -620,6 +624,10 @@ elif page == "Project Library":
                                 st.session_state["sfw_access_token"] = result["access_token"]
                                 st.session_state["sfw_refresh_token"] = result.get("refresh_token")
                                 st.session_state["sfw_account_email"] = new_email.strip()
+                                try:
+                                    cloud_storage.log_auth_event(result["access_token"], "sign_up")
+                                except Exception as audit_exc:
+                                    st.warning(f"Account created, but registration activity could not be recorded: {audit_exc}")
                                 st.success("Account created and signed in.")
                                 st.rerun()
                             st.success("Account created. Check your email for the confirmation link, then return here and sign in.")
@@ -646,6 +654,51 @@ elif page == "Project Library":
                             st.download_button("Download PDF", build_pdf(p), file_name=f"{path.stem}.pdf", key=f"pdf_{path.stem}")
                     except Exception as exc:
                         st.error(f"Could not open project: {exc}")
+
+elif page == "Admin Dashboard":
+    st.subheader("Platform activity")
+    st.caption("Private sign-in and registration audit. Only accounts explicitly assigned the Supabase admin role can view all users' activity.")
+    access_token = st.session_state.get("sfw_access_token")
+    if not access_token:
+        st.info("Sign in through Project Library first, then return to this page.")
+    else:
+        try:
+            from sfw import cloud_storage
+            if not cloud_storage.is_admin(access_token):
+                st.error("Administrator access is required. Ask the project owner to assign your account the admin role in Supabase.")
+            else:
+                events = cloud_storage.list_login_events(access_token, limit=500)
+                event_df = pd.DataFrame(events)
+                if event_df.empty:
+                    st.info("No login events have been recorded yet. New successful sign-ins and registrations will appear here after the audit SQL migration is installed.")
+                else:
+                    event_df["created_at"] = pd.to_datetime(event_df["created_at"], utc=True, errors="coerce")
+                    signins = int((event_df["event_type"] == "sign_in").sum())
+                    registrations = int((event_df["event_type"] == "sign_up").sum())
+                    unique_users = int(event_df["email"].nunique())
+                    metric_cols = st.columns(3)
+                    metric_cols[0].metric("Recorded sign-ins", signins)
+                    metric_cols[1].metric("Registered accounts", registrations)
+                    metric_cols[2].metric("Unique accounts", unique_users)
+                    st.markdown("#### Recent account activity")
+                    st.dataframe(
+                        event_df.rename(columns={
+                            "email": "Account email",
+                            "event_type": "Activity",
+                            "created_at": "Time (UTC)",
+                        })[["Account email", "Activity", "Time (UTC)"]],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                    st.download_button(
+                        "Download activity CSV",
+                        event_df.to_csv(index=False).encode("utf-8"),
+                        file_name="SFW_login_activity.csv",
+                        mime="text/csv",
+                    )
+        except Exception as exc:
+            st.error(f"Could not load the private activity log: {exc}")
+            st.caption("Confirm that supabase/login_audit.sql has been run in the Supabase SQL Editor.")
 
 elif page == "RTX GPU Server":
     st.subheader("Remote RTX GPU server")
@@ -695,8 +748,9 @@ elif page == "RTX GPU Server":
 elif page == "About & Settings":
     st.subheader("About SFW")
     st.write("Science Fair Winner is a modular scientific research-support platform. It combines a conversational AI connection (optional), research planning, scholarly metadata search, data analysis and report generation.")
-    st.markdown("#### Private project storage")
-    st.write("SFW supports Supabase email/password accounts with per-user database access policies. Run supabase/schema.sql in your Supabase SQL Editor, then add the project URL and anon/public key to Streamlit Secrets. Never use the service_role key in this app.")
+    st.markdown("#### Private project storage and activity monitoring")
+    st.write("SFW supports Supabase email/password accounts with per-user database access policies. Run supabase/schema.sql and supabase/login_audit.sql in your Supabase SQL Editor, then add the project URL and anon/public key to Streamlit Secrets. Never use the service_role key in this app.")
+    st.write("To enable the Admin Dashboard, assign the admin role to your account in Supabase Auth user metadata. The audit log records successful sign-ins and registrations after the migration is installed; it does not backfill earlier activity or record failed password attempts.")
     st.code('SFW_SUPABASE_URL = "https://your-project.supabase.co"\\nSFW_SUPABASE_ANON_KEY = "your_supabase_anon_key"', language="toml")
     st.markdown("#### Configure an AI provider")
     st.write("For Streamlit Community Cloud, add these values in Manage app → Settings → Secrets. For local development, place the same values in .streamlit/secrets.toml or a private .env file.")
