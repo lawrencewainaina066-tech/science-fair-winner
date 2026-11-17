@@ -19,71 +19,36 @@ st.title("🔬 Science Fair Winner (SFW)")
 st.caption(APP_TAGLINE)
 st.markdown("""
 <style>
-:root {
-  --sfw-navy: #14213D;
-  --sfw-blue: #2563EB;
-  --sfw-teal: #0F766E;
-  --sfw-ink: #172033;
-  --sfw-muted: #475569;
-}
-.stApp { background: #F6F8FC; }
-.block-container { max-width: 1180px; padding-top: 2rem; padding-bottom: 3rem; }
-[data-testid="stHeader"] { background: transparent; }
-[data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #14213D 0%, #1E3A5F 100%);
-  border-right: 1px solid rgba(255,255,255,.12);
-}
-[data-testid="stSidebar"] * { color: #F8FAFC; }
-[data-testid="stSidebar"] [data-testid="stRadio"] label {
-  background: rgba(255,255,255,.07); padding: .5rem .65rem;
-  border-radius: 9px; margin: .14rem 0;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:hover { background: rgba(255,255,255,.16); }
-[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,.2); }
-h1, h2, h3 { color: #172B4D; letter-spacing: -.02em; }
-.sfw-hero {
-  padding: 2rem 2.2rem; border: 1px solid #1E3A5F; border-radius: 22px;
-  background: linear-gradient(115deg, #14213D 0%, #1E3A5F 68%, #0F766E 100%);
-  margin-bottom: 1.4rem; color: #FFFFFF;
-  box-shadow: 0 14px 32px rgba(20,33,61,.18);
-}
-.sfw-hero h2 {
-  color: #FFFFFF !important; font-size: clamp(1.8rem, 3.2vw, 2.5rem);
-  line-height: 1.2; font-weight: 800; letter-spacing: -.03em;
-  margin: 0 0 .85rem 0;
-}
-.sfw-hero p {
-  color: #F8FAFC !important; font-size: 1.08rem; line-height: 1.7;
-  font-weight: 500; margin: 0; opacity: 1 !important;
-}
-.sfw-step {
-  padding: 1.15rem; border: 1px solid #D7E0EA; border-radius: 16px;
-  min-height: 125px; background: #FFFFFF; color: #14213D;
-  box-shadow: 0 6px 18px rgba(20,33,61,.07);
-}
-.sfw-step b { color: #14213D !important; font-size: 1.04rem; }
-.sfw-muted { color: #334155 !important; font-size: .96rem; line-height: 1.55; opacity: 1 !important; }
-[data-testid="stMetric"] {
-  background: #FFFFFF; border: 1px solid #D7E0EA;
-  padding: 14px; border-radius: 14px;
-}
-.stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
-  border-radius: 10px; min-height: 2.6rem; font-weight: 650;
-  border: 1px solid #2563EB;
-}
-.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] {
-  background: #2563EB; color: #FFFFFF; border: 0;
-}
-.stButton > button:hover, .stDownloadButton > button:hover {
-  border-color: #0F766E; color: #0F766E;
-}
-div[data-testid="stExpander"], div[data-testid="stAlert"] {
-  border-radius: 12px;
-}
-[data-testid="stDataFrame"] {
-  border: 1px solid #CBD5E1; border-radius: 12px; overflow: hidden;
-}
-input, textarea, [data-baseweb="select"] > div { border-radius: 9px !important; }
+:root { --sfw-navy:#101D35; --sfw-blue:#315CEB; --sfw-teal:#0F8B82; --sfw-ink:#15233B; --sfw-line:#E1E8F0; }
+.stApp { background:#F4F7FB; color:var(--sfw-ink); }
+.block-container { max-width:1320px; padding-top:1.6rem; padding-bottom:3.5rem; }
+[data-testid="stHeader"] { background:rgba(244,247,251,.88); }
+[data-testid="stSidebar"] { background:linear-gradient(180deg,#101D35 0%,#172B4D 58%,#1D3A57 100%); border-right:1px solid rgba(255,255,255,.1); }
+[data-testid="stSidebar"] * { color:#F8FAFC; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label { padding:.62rem .72rem; border-radius:11px; margin:.18rem 0; background:rgba(255,255,255,.055); }
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover { background:rgba(255,255,255,.15); }
+[data-testid="stSidebar"] hr { border-color:rgba(255,255,255,.18); }
+h1,h2,h3 { color:#152744; letter-spacing:-.025em; }
+.sfw-hero { overflow:hidden; padding:clamp(2rem,4vw,3.4rem); border:1px solid #243F68; border-radius:26px; background:radial-gradient(circle at 88% 12%,rgba(33,177,164,.28),transparent 28%),linear-gradient(118deg,#101D35 0%,#18365B 65%,#145A63 100%); margin:.4rem 0 1.65rem; color:#FFF; box-shadow:0 18px 46px rgba(16,29,53,.17); }
+.sfw-eyebrow { display:inline-block; padding:.36rem .68rem; margin-bottom:1.05rem; border:1px solid rgba(255,255,255,.28); border-radius:999px; color:#D8F7F2; font-size:.75rem; font-weight:750; letter-spacing:.12em; background:rgba(255,255,255,.07); }
+.sfw-hero h2 { color:#FFF!important; max-width:820px; font-size:clamp(2rem,4.3vw,3.35rem); line-height:1.08; font-weight:850; letter-spacing:-.045em; margin:0 0 1rem; }
+.sfw-hero p { color:#EAF1FA!important; max-width:760px; font-size:1.08rem; line-height:1.75; margin:0; opacity:1!important; }
+.sfw-hero-foot { display:flex; flex-wrap:wrap; gap:.65rem; margin-top:1.5rem; }
+.sfw-chip { color:#F8FAFC; font-size:.82rem; font-weight:650; padding:.48rem .72rem; border-radius:9px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16); }
+.sfw-section-kicker { color:#0F766E; font-size:.72rem; font-weight:800; letter-spacing:.13em; margin-bottom:.25rem; }
+.sfw-step { padding:1.3rem; border:1px solid var(--sfw-line); border-radius:18px; min-height:158px; background:#FFF; color:var(--sfw-ink); box-shadow:0 7px 22px rgba(24,45,78,.055); }
+.sfw-step b { display:block; color:#142744!important; font-size:1.06rem; margin:.48rem 0 .3rem; }
+.sfw-muted { color:#52627A!important; font-size:.94rem; line-height:1.6; opacity:1!important; }
+.sfw-step-icon { display:inline-flex; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; border-radius:12px; background:#EDF3FF; font-size:1.25rem; }
+[data-testid="stMetric"] { background:#FFF; border:1px solid var(--sfw-line); padding:15px 17px; border-radius:15px; box-shadow:0 5px 16px rgba(24,45,78,.04); }
+.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button { border-radius:11px; min-height:2.65rem; font-weight:700; border:1px solid #CBD7E8; }
+.stButton>button[kind="primary"],.stFormSubmitButton>button[kind="primary"] { background:#315CEB; color:#FFF; border:1px solid #315CEB; }
+.stButton>button:hover,.stDownloadButton>button:hover { border-color:#0F8B82; color:#0F766E; }
+div[data-testid="stExpander"],div[data-testid="stAlert"] { border-radius:13px; }
+[data-testid="stDataFrame"] { border:1px solid #D5DFEA; border-radius:13px; overflow:hidden; }
+input,textarea,[data-baseweb="select"]>div { border-radius:10px!important; }
+hr { border-color:#E1E8F0; }
+@media(max-width:700px) { .block-container{padding-top:1rem}.sfw-hero{border-radius:19px;padding:1.55rem} }
 </style>
 """, unsafe_allow_html=True)
 
@@ -117,8 +82,18 @@ if "active_project" not in st.session_state:
     st.session_state.active_project = None
 
 if page == "Home":
-    st.markdown('<div class="sfw-hero"><h2>Have a science question? Turn it into a research project.</h2><p class="sfw-muted">Start with a question, build a study plan, examine your results and prepare a report — step by step.</p></div>', unsafe_allow_html=True)
-    st.markdown("### Start here")
+    st.markdown(
+        '<section class="sfw-hero">'
+        '<div class="sfw-eyebrow">SCIENCE FAIR WINNER · RESEARCH WORKSPACE</div>'
+        '<h2>From a curious question to credible scientific work.</h2>'
+        '<p>Design stronger investigations, explore scholarly evidence, analyse your own data and turn your work into a clear research report — all in one focused workspace.</p>'
+        '<div class="sfw-hero-foot"><span class="sfw-chip">Research planning</span>'
+        '<span class="sfw-chip">Evidence discovery</span><span class="sfw-chip">Data analysis</span>'
+        '<span class="sfw-chip">Report creation</span></div></section>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="sfw-section-kicker">YOUR RESEARCH JOURNEY</div>', unsafe_allow_html=True)
+    st.markdown("### Choose where to begin")
     start_cols = st.columns(3)
     quick_starts = [
         ("🧠", "Explore an idea", "Ask a science question or refine a topic.", "AI Science Assistant"),
