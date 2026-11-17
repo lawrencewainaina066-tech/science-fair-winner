@@ -125,7 +125,7 @@ if page == "Home":
         with tool_cols[i % 3]:
             st.markdown(f"**{title}**  \\n{desc}")
             if st.button("Open", key=f"home_tool_{i}", use_container_width=True):
-                st.session_state["sfw_page"] = target
+                st.session_state["sfw_navigation_target"] = target
                 st.rerun()
     with st.expander("Important research and privacy note"):
         st.write("SFW supports research planning and analysis. It does not independently validate experiments or replace expert supervision. Use verified evidence, follow safety and ethics requirements, and avoid uploading confidential data unless you have permission.")
