@@ -105,6 +105,8 @@ if "chat" not in st.session_state:
     st.session_state.chat = []
 if "active_project" not in st.session_state:
     st.session_state.active_project = None
+if "sfw_session_projects" not in st.session_state:
+    st.session_state["sfw_session_projects"] = []
 
 if page == "Home":
     st.markdown(
@@ -329,27 +331,14 @@ elif page == "Research Project Planner":
         st.caption(p["integrity_note"])
         a, b, c = st.columns(3)
         with a:
-            cloud_ready = bool(_setting("SFW_SUPABASE_URL") and _setting("SFW_SUPABASE_ANON_KEY"))
-            has_cloud_session = bool(st.session_state.get("sfw_access_token"))
-            if cloud_ready:
-                if st.button("Save to my private library", disabled=not has_cloud_session, key="sfw_save_private_project"):
-                    try:
-                        from sfw.cloud_storage import save_project as save_cloud_project
-                        saved = save_cloud_project(st.session_state["sfw_access_token"], p["title"], p)
-                        st.success(f"Saved privately: {saved.get('title', p['title'])}")
-                    except Exception as exc:
-                        st.error(str(exc))
-                if not has_cloud_session:
-                    st.caption("Sign in from Project Library to save this plan privately.")
-            elif st.button("Save project", disabled=not shared_project_library_enabled):
-                path = save_project(p["title"], p)
-                st.success(f"Saved: {path.name}")
-        if not cloud_ready and not shared_project_library_enabled:
-            st.caption("Private cloud saving is not configured yet. Set up Supabase and sign in from Project Library, or download a copy.")
+            if st.button("Save to this session", key="sfw_save_session_project"):
+                st.session_state["sfw_session_projects"].append(p.copy())
+                st.success("Saved in this browser session. Download a copy to keep it permanently.")
         with b:
             st.download_button("Download DOCX", build_docx(p), file_name="SFW_Research_Plan.docx")
         with c:
-            st.download_button("Download PDF", build_pdf(p), file_name="SFW_Research_Plan.pdf")
+            st.download_button("Download PDF", build_pdf(p), file_name="SFW_Research_Plan.docx".replace(".docx", ".pdf"))
+        st.caption("No account is needed. Session-saved projects are temporary and may disappear when the session ends; download a copy for permanent storage.")
 
 elif page == "Research Methodology Engine":
     st.subheader("Design a defensible research methodology")
@@ -638,113 +627,27 @@ elif page == "Data Analysis Lab":
         st.info("Upload a dataset to begin. The sample Hooke's law dataset is available in the examples folder.")
 
 elif page == "Project Library":
-    st.subheader("Private research project library")
-    supabase_url = _setting("SFW_SUPABASE_URL")
-    supabase_key = _setting("SFW_SUPABASE_ANON_KEY")
-    if supabase_url and supabase_key:
-        from sfw import cloud_storage
-
-        access_token = st.session_state.get("sfw_access_token")
-        if access_token:
-            account_email = st.session_state.get("sfw_account_email", "Signed-in account")
-            st.success(f"Signed in as {account_email}")
-            try:
-                projects = cloud_storage.list_projects(access_token)
-                st.caption(f"{len(projects)} privately stored project(s). Access is restricted by Supabase row-level security.")
-                if not projects:
-                    st.info("Your private library is empty. Generate a plan and choose Save to my private library.")
-                for item in projects:
-                    project_id = item["id"]
-                    title = item.get("title") or "Untitled project"
-                    payload = item.get("payload") or {}
-                    with st.expander(title):
-                        st.write(payload.get("problem_statement", ""))
-                        st.json(payload)
-                        c1, c2, c3 = st.columns(3)
-                        with c1:
-                            st.download_button("Download DOCX", build_docx(payload), file_name="SFW_" + title[:80] + ".docx", key=f"cloud_docx_{project_id}")
-                        with c2:
-                            st.download_button("Download PDF", build_pdf(payload), file_name="SFW_" + title[:80] + ".pdf", key=f"cloud_pdf_{project_id}")
-                        with c3:
-                            if st.button("Delete project", key=f"cloud_delete_{project_id}"):
-                                try:
-                                    cloud_storage.delete_project(access_token, project_id)
-                                    st.success("Project deleted.")
-                                    st.rerun()
-                                except Exception as exc:
-                                    st.error(str(exc))
-            except Exception as exc:
-                st.error(str(exc))
-                st.caption("If your session expired, sign out and sign in again.")
-        else:
-            st.write("Create an account or sign in to keep your research plans private and available across sessions.")
-            sign_in_tab, sign_up_tab = st.tabs(["Sign in", "Create account"])
-            with sign_in_tab:
-                with st.form("sfw_signin_form"):
-                    email = st.text_input("Email address", key="sfw_signin_email")
-                    password = st.text_input("Password", type="password", key="sfw_signin_password")
-                    submitted = st.form_submit_button("Sign in", type="primary")
-                if submitted:
-                    try:
-                        session = cloud_storage.sign_in(email, password)
-                        st.session_state["sfw_access_token"] = session["access_token"]
-                        st.session_state["sfw_refresh_token"] = session.get("refresh_token")
-                        st.session_state["sfw_account_email"] = email.strip()
-                        try:
-                            cloud_storage.log_auth_event(session["access_token"], "sign_in")
-                        except Exception as audit_exc:
-                            st.warning(f"Signed in, but login activity could not be recorded: {audit_exc}")
-                        st.rerun()
-                    except Exception as exc:
-                        st.error(str(exc))
-            with sign_up_tab:
-                with st.form("sfw_signup_form"):
-                    new_email = st.text_input("Email address", key="sfw_signup_email")
-                    new_password = st.text_input("Password (at least 8 characters)", type="password", key="sfw_signup_password")
-                    confirm_password = st.text_input("Confirm password", type="password", key="sfw_signup_confirm")
-                    create_account = st.form_submit_button("Create account")
-                if create_account:
-                    if new_password != confirm_password:
-                        st.error("The passwords do not match.")
-                    elif len(new_password) < 8:
-                        st.error("Use a password with at least 8 characters.")
-                    else:
-                        try:
-                            result = cloud_storage.sign_up(new_email, new_password)
-                            if isinstance(result, dict) and result.get("access_token"):
-                                st.session_state["sfw_access_token"] = result["access_token"]
-                                st.session_state["sfw_refresh_token"] = result.get("refresh_token")
-                                st.session_state["sfw_account_email"] = new_email.strip()
-                                try:
-                                    cloud_storage.log_auth_event(result["access_token"], "sign_up")
-                                except Exception as audit_exc:
-                                    st.warning(f"Account created, but registration activity could not be recorded: {audit_exc}")
-                                st.success("Account created and signed in.")
-                                st.rerun()
-                            st.success("Account created. Check your email for the confirmation link, then return here and sign in.")
-                        except Exception as exc:
-                            st.error(str(exc))
-    else:
-        st.warning("Private cloud storage is not configured. SFW will not expose a shared project library as a substitute.")
-        st.info("Set up a Supabase project, run the SQL in supabase/schema.sql, then add SFW_SUPABASE_URL and SFW_SUPABASE_ANON_KEY to Streamlit Secrets.")
-        if shared_project_library_enabled:
-            st.warning("Legacy shared-library mode is enabled. Everyone with app access may see those projects.")
-            projects = list_projects()
-            if not projects:
-                st.info("No saved projects yet.")
-            for path in projects:
-                with st.expander(path.stem):
-                    try:
-                        p = read_project(path)
-                        st.write(p.get("problem_statement", ""))
-                        st.json(p)
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.download_button("Download DOCX", build_docx(p), file_name=f"{path.stem}.docx", key=f"docx_{path.stem}")
-                        with c2:
-                            st.download_button("Download PDF", build_pdf(p), file_name=f"{path.stem}.pdf", key=f"pdf_{path.stem}")
-                    except Exception as exc:
-                        st.error(f"Could not open project: {exc}")
+    st.subheader("Your session project library")
+    st.write("No account or sign-in is required. Projects saved here are available only during this active browser session.")
+    projects = st.session_state.get("sfw_session_projects", [])
+    if not projects:
+        st.info("Your session library is empty. Generate a research plan and choose Save to this session.")
+    for index, payload in enumerate(projects):
+        title = payload.get("title") or "Untitled project"
+        with st.expander(title):
+            st.write(payload.get("problem_statement", ""))
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.download_button("Download DOCX", build_docx(payload), file_name="SFW_" + title[:80] + ".docx", key=f"session_docx_{index}")
+            with c2:
+                st.download_button("Download PDF", build_pdf(payload), file_name="SFW_" + title[:80] + ".pdf", key=f"session_pdf_{index}")
+            with c3:
+                if st.button("Remove", key=f"session_remove_{index}"):
+                    st.session_state["sfw_session_projects"].pop(index)
+                    st.rerun()
+    if projects and st.button("Clear session library"):
+        st.session_state["sfw_session_projects"] = []
+        st.rerun()
 
 elif page == "Admin Dashboard":
     st.subheader("Platform activity")
@@ -839,10 +742,37 @@ elif page == "RTX GPU Server":
 elif page == "About & Settings":
     st.subheader("About SFW")
     st.write("Science Fair Winner is a modular scientific research-support platform. It combines a conversational AI connection (optional), research planning, scholarly metadata search, data analysis and report generation.")
-    st.markdown("#### Private project storage and activity monitoring")
-    st.write("SFW supports Supabase email/password accounts with per-user database access policies. Run supabase/schema.sql and supabase/login_audit.sql in your Supabase SQL Editor, then add the project URL and anon/public key to Streamlit Secrets. Never use the service_role key in this app.")
-    st.write("To enable the Admin Dashboard, assign the admin role to your account in Supabase Auth user metadata. The audit log records successful sign-ins and registrations after the migration is installed; it does not backfill earlier activity or record failed password attempts.")
-    st.code('SFW_SUPABASE_URL = "https://your-project.supabase.co"\\nSFW_SUPABASE_ANON_KEY = "your_supabase_anon_key"', language="toml")
+    st.markdown("#### Public access")
+    st.success("SFW is open to ordinary users. No account or sign-in is required to use the research tools, save projects during the current session, or download reports.")
+    st.caption("Session-saved projects are temporary. Users should download DOCX or PDF copies to keep their work.")
+    st.markdown("#### Platform administrator access")
+    st.write("Administrator sign-in is separate from the public workspace and is used only to protect the Admin Dashboard.")
+    if not st.session_state.get("sfw_access_token") and _setting("SFW_SUPABASE_URL") and _setting("SFW_SUPABASE_ANON_KEY"):
+        with st.form("sfw_admin_signin_form"):
+            admin_email = st.text_input("Administrator email")
+            admin_password = st.text_input("Administrator password", type="password")
+            admin_submitted = st.form_submit_button("Administrator sign in", type="primary")
+        if admin_submitted:
+            try:
+                from sfw import cloud_storage
+                admin_session = cloud_storage.sign_in(admin_email, admin_password)
+                if not cloud_storage.is_admin(admin_session["access_token"]):
+                    st.error("This account does not have the administrator role.")
+                else:
+                    st.session_state["sfw_access_token"] = admin_session["access_token"]
+                    st.session_state["sfw_refresh_token"] = admin_session.get("refresh_token")
+                    st.session_state["sfw_account_email"] = admin_email.strip()
+                    try:
+                        cloud_storage.log_auth_event(admin_session["access_token"], "sign_in")
+                    except Exception:
+                        pass
+                    st.success("Administrator signed in.")
+                    st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+    elif not st.session_state.get("sfw_access_token"):
+        st.caption("Administrator sign-in is unavailable until Supabase credentials are configured by the platform owner.")
+    st.write("Assign the administrator role to your account in Supabase Auth user metadata. Public users do not need Supabase accounts.")
     st.markdown("#### Configure an AI provider")
     st.write("For Streamlit Community Cloud, add these values in Manage app → Settings → Secrets. For local development, place the same values in .streamlit/secrets.toml or a private .env file.")
     provider_tabs = st.tabs(["Google Gemini", "Anthropic", "OpenAI"])
@@ -857,8 +787,7 @@ elif page == "About & Settings":
         st.caption("Use an API key from the OpenAI platform and a model enabled for your account.")
     st.caption("Add only one provider configuration to Streamlit Secrets. Model availability, pricing, quotas and data handling depend on the provider and your account. The assistant's Test AI connection button sends a short API request that may consume quota. Never commit API keys to GitHub or share them in screenshots.")
     st.markdown("#### Data and privacy")
-    st.write("Projects are saved locally under data/projects. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
-    st.warning("Hosted-storage and privacy notice: Streamlit Cloud's local filesystem is not durable storage. Shared Project Library saving is disabled by default because there are no user accounts or private per-user workspaces. Keep backups; persistent cloud storage and authentication are not yet configured.")
+    st.write("Session-saved projects are temporary and are not shared with other users. Download your reports to keep a permanent copy. Do not upload confidential, identifying or sensitive research data unless you have permission and understand the relevant provider's data handling.")
     st.markdown("#### Configure the remote RTX service")
     st.write("Add SFW_RTX_BASE_URL in Streamlit Secrets using your public HTTPS tunnel hostname. If Cloudflare Access protects the tunnel, add SFW_RTX_ACCESS_CLIENT_ID and SFW_RTX_ACCESS_CLIENT_SECRET as a service token. Add SFW_RTX_API_TOKEN only if the backend separately requires Bearer authentication. The connector is read-only and blocks local/private network destinations.")
     st.markdown("#### Current limitations")
