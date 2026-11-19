@@ -138,7 +138,7 @@ if page == "Home":
     tools = [
         ("📚 Literature Search", "Find scholarly publication records and DOI links.", "Literature Search"),
         ("🧭 Methodology Engine", "Turn your research question into a study method.", "Research Methodology Engine"),
-        ("🗂️ Project Library", "Sign in to save and retrieve private research plans.", "Project Library"),
+        ("🗂️ Project Library", "Save and download research plans during your current session.", "Project Library"),
         ("📄 Report downloads", "Export research plans as Word or PDF from the planner.", "Research Project Planner"),
         ("🛠️ Settings & help", "Check AI setup, privacy notes and service connections.", "About & Settings"),
     ]
