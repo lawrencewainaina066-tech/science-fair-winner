@@ -35,3 +35,10 @@ grant usage, select on sequence public.sfw_login_events_id_seq to authenticated;
 update auth.users
 set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
 where lower(email) = lower('lawrencewainaina066@gmail.com');
+
+
+-- Also grant administrator access to the explicitly authorized account.
+-- Run this in the Supabase SQL Editor after the account has registered.
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+where lower(email) = lower('lolisme2016@gmail.com');
