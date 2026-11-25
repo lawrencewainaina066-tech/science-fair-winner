@@ -858,6 +858,7 @@ elif page == "Admin Dashboard":
                     billing_cols[1].metric("Currently active", active_subscriptions)
                     billing_cols[2].metric("Confirmed revenue", f"KES {confirmed_revenue:,}")
                     billing_cols[3].metric("Pending payments", pending_payments)
+                    st.caption("Revenue and transaction totals are calculated from the latest 1,000 payment records loaded.")
 
                     if not payment_df.empty:
                         st.markdown("##### Recent payment transactions")
