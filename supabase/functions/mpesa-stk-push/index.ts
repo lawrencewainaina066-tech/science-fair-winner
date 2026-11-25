@@ -70,6 +70,8 @@ Deno.serve(async (request) => {
   let admin: any;
   let subscriptionId: string | undefined;
   let paymentId: string | undefined;
+  let checkoutRequestId: string | undefined;
+  let stkAccepted = false;
 
   try {
     const authorization = request.headers.get("Authorization") ?? "";
@@ -188,12 +190,14 @@ Deno.serve(async (request) => {
     if (!stkResponse.ok || String(stk.ResponseCode) !== "0" || !stk.CheckoutRequestID) {
       throw new Error(String(stk.errorMessage ?? stk.ResponseDescription ?? "M-Pesa did not accept the payment request."));
     }
+    checkoutRequestId = String(stk.CheckoutRequestID);
+    stkAccepted = true;
 
     const { error: updateError } = await admin
       .from("sfw_payment_transactions")
       .update({
         merchant_request_id: stk.MerchantRequestID ?? null,
-        checkout_request_id: stk.CheckoutRequestID,
+        checkout_request_id: checkoutRequestId,
         provider_result_code: String(stk.ResponseCode),
         provider_result_description: String(stk.ResponseDescription ?? "STK prompt accepted"),
       })
@@ -208,6 +212,24 @@ Deno.serve(async (request) => {
       plan_name: plan.name,
     });
   } catch (error) {
+    if (admin && paymentId && stkAccepted && checkoutRequestId) {
+      // The customer may already have an STK prompt. Preserve the pending
+      // transaction and retry saving its checkout reference; never mark it failed.
+      const { error: recoveryError } = await admin.from("sfw_payment_transactions")
+        .update({
+          checkout_request_id: checkoutRequestId,
+          provider_result_description: "STK prompt accepted; checkout reference recovery pending",
+        })
+        .eq("id", paymentId);
+      if (recoveryError) {
+        return json({
+          error: `M-Pesa sent the prompt, but SFW could not save its reference. Do not retry payment. Contact support with reference ${checkoutRequestId}.`,
+        }, 502);
+      }
+      return json({
+        error: `M-Pesa sent the prompt. Complete it on your phone; do not start another payment. Reference: ${checkoutRequestId}.`,
+      }, 502);
+    }
     if (admin && paymentId) {
       await admin.from("sfw_payment_transactions")
         .update({ status: "failed", provider_result_description: String(error).slice(0, 500) })
