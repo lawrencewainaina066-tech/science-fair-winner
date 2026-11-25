@@ -111,6 +111,18 @@ begin
     where checkout_request_id = p_checkout_request_id
       and status = 'pending';
 
+    if found then
+        update public.sfw_subscriptions
+        set status = 'cancelled',
+            updated_at = now()
+        where id = (
+            select subscription_id
+            from public.sfw_payment_transactions
+            where checkout_request_id = p_checkout_request_id
+        )
+        and status = 'pending';
+    end if;
+
     return found;
 end;
 $$;
