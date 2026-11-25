@@ -48,7 +48,7 @@ def _request(method, url, **kwargs):
         raise CloudStorageError("Could not reach the private storage service. Check the connection and try again.") from exc
     if response.status_code >= 400:
         try:
-            detail = response.json().get("msg") or response.json().get("message") or response.json().get("error_description")
+            detail = response.json().get("msg") or response.json().get("message") or response.json().get("error_description") or response.json().get("error")
         except (ValueError, AttributeError):
             detail = None
         if response.status_code in (401, 403):
@@ -185,3 +185,76 @@ def logout(access_token):
         "POST", f"{base}/auth/v1/logout",
         headers=_headers(key, access_token),
     )
+
+
+
+def list_subscription_plans():
+    """Read active public plan descriptions and prices; never use this for payment authority."""
+    base, key = _settings()
+    result = _request(
+        "GET", f"{base}/rest/v1/sfw_plans",
+        headers=_headers(key),
+        params={
+            "select": "code,name,amount_kes,billing_interval,description,entitlements",
+            "is_active": "eq.true",
+            "is_public": "eq.true",
+            "order": "sort_order.asc",
+        },
+    )
+    if not isinstance(result, list):
+        raise CloudStorageError("The subscription plan response was invalid.")
+    return result
+
+
+def list_my_subscriptions(access_token, limit=20):
+    """List only the signed-in user's subscription history (enforced by RLS)."""
+    base, key = _settings()
+    result = _request(
+        "GET", f"{base}/rest/v1/sfw_subscriptions",
+        headers=_headers(key, access_token),
+        params={
+            "select": "id,plan_code,status,starts_at,ends_at,auto_renew,provider,created_at",
+            "order": "created_at.desc",
+            "limit": max(1, min(int(limit), 100)),
+        },
+    )
+    if not isinstance(result, list):
+        raise CloudStorageError("The subscription history response was invalid.")
+    return result
+
+
+def list_my_payments(access_token, limit=20):
+    """List the signed-in user's payment records; sensitive callback data is excluded."""
+    base, key = _settings()
+    result = _request(
+        "GET", f"{base}/rest/v1/sfw_payment_transactions",
+        headers=_headers(key, access_token),
+        params={
+            "select": "id,subscription_id,amount_kes,currency,phone_number,mpesa_receipt_number,status,provider_result_description,created_at",
+            "order": "created_at.desc",
+            "limit": max(1, min(int(limit), 100)),
+        },
+    )
+    if not isinstance(result, list):
+        raise CloudStorageError("The payment history response was invalid.")
+    return result
+
+
+def start_mpesa_payment(access_token, plan_code, phone_number):
+    """Ask the authenticated Edge Function to start STK Push for a server-priced plan."""
+    if not str(plan_code or "").strip():
+        raise CloudStorageError("Choose a subscription plan first.")
+    if not str(phone_number or "").strip():
+        raise CloudStorageError("Enter the Safaricom phone number for the M-Pesa prompt.")
+    base, key = _settings()
+    result = _request(
+        "POST", f"{base}/functions/v1/mpesa-stk-push",
+        headers=_headers(key, access_token),
+        json={
+            "plan_code": str(plan_code).strip().lower(),
+            "phone_number": str(phone_number).strip(),
+        },
+    )
+    if not isinstance(result, dict) or not result.get("ok"):
+        raise CloudStorageError("The M-Pesa payment request was not confirmed.")
+    return result
