@@ -67,7 +67,7 @@ Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
-  let admin: ReturnType<typeof createClient> | undefined;
+  let admin: any;
   let subscriptionId: string | undefined;
   let paymentId: string | undefined;
 
@@ -79,9 +79,12 @@ Deno.serve(async (request) => {
     }
 
     const supabaseUrl = required("SUPABASE_URL");
-    const publishableKey = Deno.env.get("SUPABASE_ANON_KEY")
-      ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")
-      ?? "";
+    const publishableMap = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+    const publishableKey = publishableMap
+      ? JSON.parse(publishableMap).default
+      : Deno.env.get("SUPABASE_ANON_KEY")
+        ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")
+        ?? "";
     const secretMap = Deno.env.get("SUPABASE_SECRET_KEYS");
     const secretKey = secretMap
       ? JSON.parse(secretMap).default
