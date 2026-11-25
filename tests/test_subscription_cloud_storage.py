@@ -74,3 +74,15 @@ def test_mpesa_initiation_rejects_missing_plan(monkeypatch):
     configure_supabase(monkeypatch)
     with pytest.raises(cloud_storage.CloudStorageError, match="Choose a subscription plan"):
         cloud_storage.start_mpesa_payment("user-token", "", "0712345678")
+
+
+def test_admin_subscription_listing_requires_admin(monkeypatch):
+    monkeypatch.setattr(cloud_storage, "is_admin", lambda token: False)
+    with pytest.raises(cloud_storage.CloudStorageError, match="Administrator access"):
+        cloud_storage.list_all_subscriptions("ordinary-user-token")
+
+
+def test_admin_payment_listing_requires_admin(monkeypatch):
+    monkeypatch.setattr(cloud_storage, "is_admin", lambda token: False)
+    with pytest.raises(cloud_storage.CloudStorageError, match="Administrator access"):
+        cloud_storage.list_all_payments("ordinary-user-token")
