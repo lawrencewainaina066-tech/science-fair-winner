@@ -27,8 +27,9 @@ The prices are the approved starting catalogue. Specific premium feature limits 
 5. Register the callback URL with the Daraja application:
    `https://YOUR_PROJECT_REF.supabase.co/functions/v1/mpesa-callback`
 6. Add the server secrets listed below in Supabase Dashboard → Edge Functions → Secrets.
-7. Start in Daraja sandbox. Complete a full STK test and verify the payment, receipt, subscription dates and user history before switching to production.
-8. Deploy the Streamlit app from the feature branch only after local tests and Edge Function checks pass.
+7. Configure a trusted daily Supabase Cron job (or equivalent scheduler) to call `select public.sfw_expire_subscriptions();` using the service role. Do not expose this function to public clients.
+8. Start in Daraja sandbox. Complete a full STK test and verify the payment, receipt, subscription dates and user history before switching to production.
+9. Deploy the Streamlit app from the feature branch only after local tests and Edge Function checks pass.
 
 ## Edge Function secrets
 
@@ -59,6 +60,6 @@ Daraja STK callbacks do not provide a cryptographic signature in this integratio
 
 - The subscription feature is not live until the SQL migrations, Edge Function secrets and deployments are completed.
 - Sandbox credentials and test transactions are required before production use.
-- Feature-specific premium limits, entitlement enforcement, cancellations, refunds, expiry automation, renewal reminders and automatic recurring payments are not implemented in this first billing foundation.
+- Feature-specific premium limits, entitlement enforcement, cancellations, refunds, renewal reminders and automatic recurring payments are not implemented in this first billing foundation. Subscription expiry is implemented as a server-only database routine and requires a trusted daily schedule to run.
 - Institutions use a custom quotation; there is no self-service institution checkout.
 - Do not represent an STK prompt as a completed payment. Only a server-verified successful callback activates the subscription.
