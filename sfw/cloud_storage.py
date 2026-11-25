@@ -258,3 +258,41 @@ def start_mpesa_payment(access_token, plan_code, phone_number):
     if not isinstance(result, dict) or not result.get("ok"):
         raise CloudStorageError("The M-Pesa payment request was not confirmed.")
     return result
+
+
+def list_all_subscriptions(access_token, limit=500):
+    """List subscription records for a verified administrator only."""
+    if not is_admin(access_token):
+        raise CloudStorageError("Administrator access is required to view all subscriptions.")
+    base, key = _settings()
+    result = _request(
+        "GET", f"{base}/rest/v1/sfw_subscriptions",
+        headers=_headers(key, access_token),
+        params={
+            "select": "id,user_id,plan_code,status,starts_at,ends_at,auto_renew,provider,created_at",
+            "order": "created_at.desc",
+            "limit": max(1, min(int(limit), 1000)),
+        },
+    )
+    if not isinstance(result, list):
+        raise CloudStorageError("The administrator subscription response was invalid.")
+    return result
+
+
+def list_all_payments(access_token, limit=500):
+    """List payment records for a verified administrator only."""
+    if not is_admin(access_token):
+        raise CloudStorageError("Administrator access is required to view all payments.")
+    base, key = _settings()
+    result = _request(
+        "GET", f"{base}/rest/v1/sfw_payment_transactions",
+        headers=_headers(key, access_token),
+        params={
+            "select": "id,user_id,subscription_id,amount_kes,currency,phone_number,mpesa_receipt_number,status,provider_result_description,created_at",
+            "order": "created_at.desc",
+            "limit": max(1, min(int(limit), 1000)),
+        },
+    )
+    if not isinstance(result, list):
+        raise CloudStorageError("The administrator payment response was invalid.")
+    return result
