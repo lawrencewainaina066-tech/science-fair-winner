@@ -119,3 +119,33 @@ revoke all on function public.sfw_confirm_mpesa_payment(text, text, text, intege
 revoke all on function public.sfw_fail_mpesa_payment(text, text, text) from public, anon, authenticated;
 grant execute on function public.sfw_confirm_mpesa_payment(text, text, text, integer) to service_role;
 grant execute on function public.sfw_fail_mpesa_payment(text, text, text) to service_role;
+
+
+-- Run daily from Supabase Cron (or another trusted scheduler) to expire access.
+create or replace function public.sfw_expire_subscriptions()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    v_expired_count integer;
+begin
+    if coalesce(auth.role(), '') <> 'service_role' then
+        raise exception 'Service role required';
+    end if;
+
+    update public.sfw_subscriptions
+    set status = 'expired',
+        updated_at = now()
+    where status in ('active', 'past_due')
+      and ends_at is not null
+      and ends_at <= now();
+
+    get diagnostics v_expired_count = row_count;
+    return v_expired_count;
+end;
+$$;
+
+revoke all on function public.sfw_expire_subscriptions() from public, anon, authenticated;
+grant execute on function public.sfw_expire_subscriptions() to service_role;
