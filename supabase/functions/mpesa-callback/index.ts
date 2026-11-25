@@ -114,7 +114,7 @@ Deno.serve(async (request) => {
     }
 
     const verifiedResultCode = Number(query.ResultCode);
-    if (verifiedResultCode !== 0 || callbackResultCode !== 0) {
+    if (verifiedResultCode !== 0) {
       const { error } = await admin.rpc("sfw_fail_mpesa_payment", {
         p_checkout_request_id: checkoutId,
         p_result_code: String(verifiedResultCode),
@@ -122,6 +122,11 @@ Deno.serve(async (request) => {
       });
       if (error) throw new Error("Could not record the verified failed payment.");
       return json({ ResultCode: 0, ResultDesc: "Payment failure recorded." });
+    }
+    if (callbackResultCode !== 0) {
+      // A mismatch between the callback and the Daraja query is not a failure
+      // signal; leave the payment pending for safe reconciliation.
+      return json({ error: "Daraja callback and query results do not match." }, 503);
     }
 
     if (!Number.isFinite(callbackAmount) || callbackAmount !== payment.amount_kes ||
