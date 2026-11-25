@@ -149,7 +149,8 @@ Deno.serve(async (request) => {
       .select("id")
       .single();
     if (paymentError || !payment) throw new Error("Could not create a pending payment record.");
-    paymentId = payment.id;
+    const paymentRecordId = payment.id as string;
+    paymentId = paymentRecordId;
 
     const environment = (Deno.env.get("MPESA_ENV") ?? "sandbox").toLowerCase();
     if (!["sandbox", "production"].includes(environment)) throw new Error("MPESA_ENV must be sandbox or production.");
@@ -182,7 +183,7 @@ Deno.serve(async (request) => {
         PartyB: shortcode,
         PhoneNumber: phone,
         CallBackURL: callbackUrl,
-        AccountReference: `SFW${paymentId.replace(/-/g, "").slice(0, 9)}`,
+        AccountReference: `SFW${paymentRecordId.replace(/-/g, "").slice(0, 9)}`,
         TransactionDesc: `SFW ${plan.name}`.slice(0, 13),
       }),
     });
