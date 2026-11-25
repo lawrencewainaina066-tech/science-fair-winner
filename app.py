@@ -835,6 +835,51 @@ elif page == "Admin Dashboard":
                         file_name="SFW_login_activity.csv",
                         mime="text/csv",
                     )
+
+                st.markdown("#### Subscription and revenue overview")
+                try:
+                    all_subscriptions = cloud_storage.list_all_subscriptions(access_token, limit=1000)
+                    all_payments = cloud_storage.list_all_payments(access_token, limit=1000)
+                    subscription_df = pd.DataFrame(all_subscriptions)
+                    payment_df = pd.DataFrame(all_payments)
+
+                    active_subscriptions = 0
+                    if not subscription_df.empty:
+                        ends = pd.to_datetime(subscription_df["ends_at"], utc=True, errors="coerce")
+                        active_subscriptions = int(
+                            ((subscription_df["status"] == "active") & (ends > pd.Timestamp.now(tz="UTC"))).sum()
+                        )
+
+                    successful_payments = payment_df[payment_df["status"] == "success"] if not payment_df.empty else pd.DataFrame()
+                    confirmed_revenue = int(successful_payments["amount_kes"].sum()) if not successful_payments.empty else 0
+                    pending_payments = int((payment_df["status"] == "pending").sum()) if not payment_df.empty else 0
+                    billing_cols = st.columns(4)
+                    billing_cols[0].metric("Subscription records", len(subscription_df))
+                    billing_cols[1].metric("Currently active", active_subscriptions)
+                    billing_cols[2].metric("Confirmed revenue", f"KES {confirmed_revenue:,}")
+                    billing_cols[3].metric("Pending payments", pending_payments)
+
+                    if not payment_df.empty:
+                        st.markdown("##### Recent payment transactions")
+                        display_payments = payment_df.copy()
+                        display_payments["phone_number"] = display_payments["phone_number"].fillna("").astype(str).map(
+                            lambda value: f"••••{value[-4:]}" if value else ""
+                        )
+                        st.dataframe(
+                            display_payments.drop(columns=["user_id", "subscription_id", "id"], errors="ignore"),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                        st.download_button(
+                            "Download payment report CSV",
+                            payment_df.drop(columns=["phone_number"], errors="ignore").to_csv(index=False).encode("utf-8"),
+                            file_name="SFW_payment_report.csv",
+                            mime="text/csv",
+                        )
+                    else:
+                        st.info("No payment transactions have been recorded yet.")
+                except Exception as billing_exc:
+                    st.warning(f"Billing analytics are unavailable until the subscription migrations are installed: {billing_exc}")
         except Exception as exc:
             st.error(f"Could not load the private activity log: {exc}")
             st.caption("Confirm that supabase/login_audit.sql has been run in the Supabase SQL Editor.")
