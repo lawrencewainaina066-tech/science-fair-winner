@@ -97,7 +97,7 @@ returns boolean
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 declare
     v_payment_updated boolean;
 begin
@@ -128,7 +128,7 @@ begin
 
     return v_payment_updated;
 end;
-$;
+$$;
 
 revoke all on function public.sfw_confirm_mpesa_payment(text, text, text, integer) from public, anon, authenticated;
 revoke all on function public.sfw_fail_mpesa_payment(text, text, text) from public, anon, authenticated;
