@@ -146,10 +146,9 @@ as $$
 declare
     v_expired_count integer;
 begin
-    if coalesce(auth.role(), '') <> 'service_role' then
-        raise exception 'Service role required';
-    end if;
-
+    -- EXECUTE is revoked from public, anon and authenticated below.
+    -- Supabase Cron runs scheduled SQL as the database role that created the job;
+    -- the database owner can execute this maintenance routine directly.
     update public.sfw_subscriptions
     set status = 'expired',
         updated_at = now()
