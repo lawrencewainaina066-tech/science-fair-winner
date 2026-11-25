@@ -97,7 +97,9 @@ returns boolean
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $
+declare
+    v_payment_updated boolean;
 begin
     if coalesce(auth.role(), '') <> 'service_role' then
         raise exception 'Service role required';
@@ -110,8 +112,9 @@ begin
         updated_at = now()
     where checkout_request_id = p_checkout_request_id
       and status = 'pending';
+    v_payment_updated := found;
 
-    if found then
+    if v_payment_updated then
         update public.sfw_subscriptions
         set status = 'cancelled',
             updated_at = now()
@@ -123,9 +126,9 @@ begin
         and status = 'pending';
     end if;
 
-    return found;
+    return v_payment_updated;
 end;
-$$;
+$;
 
 revoke all on function public.sfw_confirm_mpesa_payment(text, text, text, integer) from public, anon, authenticated;
 revoke all on function public.sfw_fail_mpesa_payment(text, text, text) from public, anon, authenticated;
