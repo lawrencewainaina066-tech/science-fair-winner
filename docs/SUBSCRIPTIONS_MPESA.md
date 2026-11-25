@@ -16,20 +16,21 @@ The prices are the approved starting catalogue. Specific premium feature limits 
 
 ## Deployment order
 
-1. Back up the Supabase database.
-2. In the Supabase SQL Editor, run `supabase/subscriptions.sql`.
-3. Then run `supabase/mpesa_functions.sql`.
-4. Deploy the Edge Functions from the repository root:
+1. Back up the Supabase database before changing anything.
+2. In the Supabase SQL Editor, verify that the existing base objects are present: `sfw_projects`, `sfw_login_events`, and `public.sfw_touch_updated_at()`. If the project is genuinely new and these objects are absent, apply `supabase/schema.sql` first and `supabase/login_audit.sql` second. Do not rerun the login-audit script just to install billing; it also contains administrator-role updates.
+3. Run `supabase/subscriptions.sql` in the SQL Editor.
+4. Run `supabase/mpesa_functions.sql` in the SQL Editor.
+5. From the repository root, deploy the Edge Functions:
    ```powershell
-   supabase functions deploy mpesa-stk-push
-   supabase functions deploy mpesa-callback
+   npx supabase functions deploy mpesa-stk-push
+   npx supabase functions deploy mpesa-callback
    ```
-5. Register the callback URL with the Daraja application:
+6. Register the callback URL with the Daraja application:
    `https://YOUR_PROJECT_REF.supabase.co/functions/v1/mpesa-callback`
-6. Add the server secrets listed below in Supabase Dashboard → Edge Functions → Secrets.
-7. Configure a trusted daily Supabase Cron job (or equivalent scheduler) to call `select public.sfw_expire_subscriptions();` using the service role. Do not expose this function to public clients.
-8. Start in Daraja sandbox. Complete a full STK test and verify the payment, receipt, subscription dates and user history before switching to production.
-9. Deploy the Streamlit app from the feature branch only after local tests and Edge Function checks pass.
+7. Add the server secrets listed below in Supabase Dashboard → Edge Functions → Secrets.
+8. Enable the Supabase Cron extension if it is not already enabled, then schedule `select public.sfw_expire_subscriptions();` once daily (for example, 00:15 UTC). The function revokes execution from public, anon and authenticated roles; schedule it as the database owner, not as an ordinary user. Do not expose it to public clients.
+9. Start in Daraja sandbox. Complete a full STK test and verify the payment, receipt, subscription dates and user history before switching to production.
+10. Deploy the Streamlit app from the feature branch only after local tests and Edge Function checks pass.
 
 ## Edge Function secrets
 
