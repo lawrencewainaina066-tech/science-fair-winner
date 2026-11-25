@@ -20,13 +20,9 @@ function required(name: string): string {
 }
 
 function normaliseKenyanPhone(input: unknown): string {
-  const digits = String(input ?? "").replace(/[\s()+-]/g, "");
-  let phone = digits;
+  let phone = String(input ?? "").trim().replace(/[^\d+]/g, "");
+  if (phone.startsWith("+")) phone = phone.slice(1);
   if (/^0[17]\d{8}$/.test(phone)) phone = `254${phone.slice(1)}`;
-  if (/^\+[17]\d{10}$/.test(String(input ?? "").replace(/[\s()-]/g, ""))) {
-    phone = String(input).replace(/[\s()-]/g, "").slice(1);
-    phone = `254${phone.slice(-9)}`;
-  }
   if (!/^254[17]\d{8}$/.test(phone)) {
     throw new Error("Enter a valid Kenyan Safaricom number, for example 0712345678.");
   }
