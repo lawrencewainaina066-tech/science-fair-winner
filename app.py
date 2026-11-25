@@ -73,7 +73,7 @@ if access_token_for_navigation:
 
 workspace_pages = [
     "Home", "AI Science Assistant", "Research Project Planner", "Research Methodology Engine",
-    "Literature Search", "Data Analysis Lab", "Project Library", "About & Settings"
+    "Literature Search", "Data Analysis Lab", "Project Library", "Subscription & Billing", "About & Settings"
 ]
 if is_platform_admin:
     workspace_pages.insert(-1, "Admin Dashboard")
@@ -141,6 +141,7 @@ if page == "Home":
         ("🗂️ Project Library", "Save and download research plans during your current session.", "Project Library"),
         ("📄 Report downloads", "Export research plans as Word or PDF from the planner.", "Research Project Planner"),
         ("🛠️ Settings & help", "Check AI setup, privacy notes and service connections.", "About & Settings"),
+        ("💳 Plans & billing", "Review SFW plans and manage your M-Pesa subscription.", "Subscription & Billing"),
     ]
     for i, (title, desc, target) in enumerate(tools):
         with tool_cols[i % 3]:
@@ -648,6 +649,147 @@ elif page == "Project Library":
     if projects and st.button("Clear session library"):
         st.session_state["sfw_session_projects"] = []
         st.rerun()
+
+elif page == "Subscription & Billing":
+    from sfw import cloud_storage
+    from sfw.subscriptions import list_plans, format_price
+
+    st.subheader("SFW plans and subscriptions")
+    st.write("The public SFW research workspace remains free to explore without an account. An account is needed only to purchase a paid plan and view its billing history.")
+    st.caption("All prices are in Kenyan shillings (KES). Monthly plans are billed manually through M-Pesa STK Push; automatic renewals are not enabled.")
+
+    try:
+        plans = cloud_storage.list_subscription_plans()
+        if not plans:
+            plans = list_plans()
+    except Exception:
+        plans = list_plans()
+        st.info("Showing the published plan catalogue. Connect and migrate Supabase to enable account billing.")
+
+    plan_columns = st.columns(len(plans))
+    for column, plan in zip(plan_columns, plans):
+        with column:
+            st.markdown(f"### {plan['name']}")
+            st.markdown(f"**{format_price(plan)}**")
+            st.caption(plan.get("description", ""))
+            if plan["code"] == "free":
+                st.success("Open access")
+            elif plan["code"] == "institution":
+                st.info("Contact SFW for a quotation")
+            else:
+                st.caption("M-Pesa payment available after account sign-in.")
+
+    st.divider()
+    access_token = st.session_state.get("sfw_access_token")
+    if not access_token:
+        st.markdown("#### Your SFW account")
+        auth_mode = st.radio(
+            "Account action",
+            ["Sign in", "Create account"],
+            horizontal=True,
+            key="sfw_billing_auth_mode",
+        )
+        with st.form("sfw_billing_auth_form"):
+            account_email = st.text_input("Email address", key="sfw_billing_email")
+            account_password = st.text_input("Password", type="password", key="sfw_billing_password")
+            auth_submitted = st.form_submit_button(
+                "Sign in" if auth_mode == "Sign in" else "Create account",
+                type="primary",
+            )
+        if auth_submitted:
+            try:
+                if auth_mode == "Sign in":
+                    account_session = cloud_storage.sign_in(account_email, account_password)
+                    account_token = account_session["access_token"]
+                    st.session_state["sfw_access_token"] = account_token
+                    st.session_state["sfw_refresh_token"] = account_session.get("refresh_token")
+                    st.session_state["sfw_account_email"] = account_email.strip()
+                    try:
+                        cloud_storage.log_auth_event(account_token, "sign_in")
+                    except Exception:
+                        pass
+                    st.success("Signed in successfully.")
+                    st.rerun()
+                else:
+                    if len(account_password) < 8:
+                        st.error("Use a password with at least 8 characters.")
+                    else:
+                        signup_result = cloud_storage.sign_up(account_email, account_password)
+                        signup_session = signup_result.get("session") if isinstance(signup_result, dict) else None
+                        signup_token = (signup_session or {}).get("access_token")
+                        if signup_token:
+                            st.session_state["sfw_access_token"] = signup_token
+                            st.session_state["sfw_refresh_token"] = signup_session.get("refresh_token")
+                            st.session_state["sfw_account_email"] = account_email.strip()
+                            try:
+                                cloud_storage.log_auth_event(signup_token, "sign_up")
+                            except Exception:
+                                pass
+                            st.success("Account created and signed in.")
+                            st.rerun()
+                        else:
+                            st.success("Account registration submitted. Check your email for a verification link, then sign in here.")
+            except Exception as exc:
+                st.error(f"Account request failed: {exc}")
+        st.caption("Registration is optional. You can continue using the public research tools without signing in.")
+    else:
+        st.success(f"Signed in as {st.session_state.get('sfw_account_email', 'your SFW account')}.")
+        paid_plans = [
+            plan for plan in plans
+            if plan.get("billing_interval") == "month"
+            and isinstance(plan.get("amount_kes"), (int, float))
+            and plan.get("amount_kes", 0) > 0
+        ]
+        if paid_plans:
+            st.markdown("#### Start a monthly subscription")
+            plan_labels = {
+                plan["code"]: f"{plan['name']} — {format_price(plan)}"
+                for plan in paid_plans
+            }
+            with st.form("sfw_mpesa_checkout_form"):
+                selected_plan = st.selectbox(
+                    "Choose a plan",
+                    options=list(plan_labels),
+                    format_func=lambda code: plan_labels[code],
+                )
+                mpesa_phone = st.text_input(
+                    "Safaricom M-Pesa number",
+                    placeholder="0712345678",
+                    help="Use a Kenyan Safaricom mobile number that can receive an STK prompt.",
+                )
+                payment_submitted = st.form_submit_button("Send M-Pesa payment prompt", type="primary")
+            if payment_submitted:
+                try:
+                    payment = cloud_storage.start_mpesa_payment(
+                        access_token, selected_plan, mpesa_phone
+                    )
+                    st.success(payment.get("message", "M-Pesa prompt sent."))
+                    st.caption(f"Plan: {payment.get('plan_name')} · Amount: KES {payment.get('amount_kes'):,}")
+                    st.info("Complete the prompt on your phone. Your subscription activates only after SFW verifies the Daraja callback.")
+                except Exception as exc:
+                    st.error(f"Could not start M-Pesa payment: {exc}")
+
+        st.markdown("#### Your subscription history")
+        try:
+            subscriptions = cloud_storage.list_my_subscriptions(access_token)
+            if subscriptions:
+                st.dataframe(pd.DataFrame(subscriptions), use_container_width=True, hide_index=True)
+            else:
+                st.info("No subscription history is recorded for this account yet.")
+        except Exception as exc:
+            st.warning(f"Subscription history is unavailable until the billing database migration is installed: {exc}")
+
+        st.markdown("#### Your payment history")
+        try:
+            payments = cloud_storage.list_my_payments(access_token)
+            if payments:
+                st.dataframe(pd.DataFrame(payments), use_container_width=True, hide_index=True)
+            else:
+                st.info("No M-Pesa transactions are recorded for this account yet.")
+        except Exception as exc:
+            st.warning(f"Payment history is unavailable until the billing database migration is installed: {exc}")
+
+    st.caption("Current rollout: SFW records plans, payment transactions and subscription status. Feature-specific premium limits and automatic renewals are not yet enabled; paid access must not be advertised as active until those rules are implemented and tested.")
 
 elif page == "Admin Dashboard":
     st.subheader("Platform activity")
