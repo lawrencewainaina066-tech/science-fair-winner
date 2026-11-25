@@ -715,8 +715,11 @@ elif page == "Subscription & Billing":
                         st.error("Use a password with at least 8 characters.")
                     else:
                         signup_result = cloud_storage.sign_up(account_email, account_password)
-                        signup_session = signup_result.get("session") if isinstance(signup_result, dict) else None
-                        signup_token = (signup_session or {}).get("access_token")
+                        signup_session = (
+                            (signup_result.get("session") or signup_result)
+                            if isinstance(signup_result, dict) else {}
+                        )
+                        signup_token = signup_session.get("access_token")
                         if signup_token:
                             st.session_state["sfw_access_token"] = signup_token
                             st.session_state["sfw_refresh_token"] = signup_session.get("refresh_token")
